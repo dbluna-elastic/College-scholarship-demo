@@ -1,73 +1,123 @@
 /**
- * ESQL Query Helpers
+ * Elasticsearch Query Helpers
  * 
- * Provides helper functions to build ESQL queries for common operations:
- * - Scholarship search
+ * Provides helper functions to build Elasticsearch queries for common operations:
+ * - Scholarship search (using RRF - Reciprocal Rank Fusion)
  * - Student data queries
  * - Analytics queries
  * 
  * All queries are template-aware (can filter by state if template has stateName)
  */
 
-import { fetchESQLQuery } from './elasticApi.js';
+import { fetchElasticsearchSearch } from './elasticApi.js';
 
 /**
- * Search scholarships by various criteria
+ * Search scholarships by major/keyword using RRF (Reciprocal Rank Fusion)
  * 
  * @param {Object} criteria - Search criteria
- * @param {number} criteria.minAmount - Minimum scholarship amount
- * @param {string} criteria.deadline - Deadline filter (e.g., "2026-12-31")
- * @param {string} criteria.eligibility - Eligibility requirements
- * @param {string} criteria.state - State filter (from template)
- * @param {string} criteria.keyword - Keyword search
- * @param {number} criteria.limit - Result limit (default: 20)
- * @returns {Promise<Object>} Search results
+ * @param {string} criteria.keyword - Search keyword (major, field of study, etc.)
+ * @param {string} criteria.index - Elasticsearch index (default: 'scholarship_index_elser')
+ * @param {number} criteria.size - Result limit (default: 50)
+ * @returns {Promise<Object>} Search results with mapped scholarship data
  */
 export async function searchScholarships(criteria = {}) {
     const {
-        minAmount,
-        deadline,
-        eligibility,
-        state,
-        keyword,
-        limit = 20,
+        keyword = '',
+        index = 'scholarship_index_elser',
+        size = 50,
     } = criteria;
 
-    // Build ESQL query
-    let query = 'FROM scholarships';
-    const conditions = [];
-
-    if (keyword) {
-        conditions.push(`name LIKE "*${keyword}*" OR description LIKE "*${keyword}*"`);
+    if (!keyword || keyword.trim() === '') {
+        return {
+            scholarships: [],
+            total: 0,
+        };
     }
 
-    if (minAmount) {
-        conditions.push(`amount >= ${minAmount}`);
-    }
-
-    if (deadline) {
-        conditions.push(`deadline >= "${deadline}"`);
-    }
-
-    if (eligibility) {
-        conditions.push(`eligibility LIKE "*${eligibility}*"`);
-    }
-
-    if (state) {
-        conditions.push(`state == "${state}" OR state == "ALL"`);
-    }
-
-    if (conditions.length > 0) {
-        query += ` | WHERE ${conditions.join(' AND ')}`;
-    }
-
-    query += ` | SORT deadline ASC | LIMIT ${limit}`;
+    // Build RRF query structure
+    const queryBody = {
+        retriever: {
+            rrf: {
+                retrievers: [
+                    {
+                        standard: {
+                            query: {
+                                multi_match: {
+                                    query: keyword,
+                                    fields: ['title', 'award', 'headings'],
+                                },
+                            },
+                        },
+                    },
+                    {
+                        standard: {
+                            query: {
+                                semantic: {
+                                    field: 'scholarship_name',
+                                    query: keyword,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        standard: {
+                            query: {
+                                semantic: {
+                                    field: 'purpose',
+                                    query: keyword,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        standard: {
+                            query: {
+                                semantic: {
+                                    field: 'scholarship_criteria',
+                                    query: keyword,
+                                },
+                            },
+                        },
+                    },
+                ],
+                rank_window_size: 100,
+                rank_constant: 60,
+            },
+        },
+        size: size,
+        _source: ['scholarship_name', 'award', 'deadline', 'title', 'amount', 'url'],
+    };
 
     try {
-        const result = await fetchESQLQuery(query);
+        const result = await fetchElasticsearchSearch(index, queryBody);
+        
+        // Map Elasticsearch hits to scholarship objects
+        const scholarships = (result.hits?.hits || [])
+            .map((hit) => {
+                const source = hit._source || {};
+                const name = source.scholarship_name || source.title || 'Unknown Scholarship';
+                
+                // Filter out scholarships with names > 200 characters
+                if (name.length > 200) {
+                    return null;
+                }
+                
+                return {
+                    id: hit._id,
+                    name: name,
+                    amount: source.award || source.amount || 'N/A',
+                    deadline: source.deadline || 'N/A',
+                    url: source.url || null,
+                    title: source.title,
+                    award: source.award,
+                    score: hit._score,
+                };
+            })
+            .filter((scholarship) => scholarship !== null); // Remove filtered items
+
         return {
-            scholarships: result.values || [],
-            total: result.values?.length || 0,
+            scholarships,
+            total: result.hits?.total?.value || result.hits?.total || 0,
         };
     } catch (error) {
         console.error('Scholarship search error:', error);
@@ -79,20 +129,29 @@ export async function searchScholarships(criteria = {}) {
  * Get student/application data
  * 
  * @param {string} studentId - Student ID
+ * @param {string} index - Elasticsearch index (default: 'student_applications')
  * @returns {Promise<Object>} Student data
  */
-export async function getStudentData(studentId) {
+export async function getStudentData(studentId, index = 'student_applications') {
     if (!studentId) {
         throw new Error('Student ID is required');
     }
 
-    const query = `FROM students | WHERE student_id == "${studentId}" | LIMIT 1`;
+    const queryBody = {
+        query: {
+            term: {
+                student_id: studentId,
+            },
+        },
+        size: 1,
+    };
 
     try {
-        const result = await fetchESQLQuery(query);
+        const result = await fetchElasticsearchSearch(index, queryBody);
+        const hits = result.hits?.hits || [];
         return {
-            student: result.values?.[0] || null,
-            found: (result.values?.length || 0) > 0,
+            student: hits[0]?._source || null,
+            found: hits.length > 0,
         };
     } catch (error) {
         console.error('Student data query error:', error);
@@ -107,6 +166,7 @@ export async function getStudentData(studentId) {
  * @param {string} options.timeRange - Time range (e.g., "30d", "1y")
  * @param {string[]} options.metrics - Metrics to calculate
  * @param {string} options.state - Optional state filter
+ * @param {string} options.index - Elasticsearch index (default: 'scholarship_index_elser')
  * @returns {Promise<Object>} Analytics data
  */
 export async function getAnalytics(options = {}) {
@@ -114,6 +174,7 @@ export async function getAnalytics(options = {}) {
         timeRange = '30d',
         metrics = ['count', 'total_amount'],
         state,
+        index = 'scholarship_index_elser',
     } = options;
 
     // Build time filter
@@ -129,36 +190,60 @@ export async function getAnalytics(options = {}) {
 
     const startDateStr = startDate.toISOString().split('T')[0];
 
-    // Build ESQL query
-    let query = 'FROM scholarships';
-    const conditions = [`created_date >= "${startDateStr}"`];
+    // Build query with filters
+    const mustClauses = [
+        {
+            range: {
+                created_date: {
+                    gte: startDateStr,
+                },
+            },
+        },
+    ];
 
     if (state) {
-        conditions.push(`state == "${state}" OR state == "ALL"`);
+        mustClauses.push({
+            bool: {
+                should: [
+                    { term: { state: state } },
+                    { term: { state: 'ALL' } },
+                ],
+            },
+        });
     }
 
-    query += ` | WHERE ${conditions.join(' AND ')}`;
-
-    // Add aggregations based on metrics
-    const aggregations = [];
+    // Build aggregations
+    const aggs = {};
     if (metrics.includes('count')) {
-        aggregations.push('STATS count = COUNT(*)');
+        aggs.total_scholarships = { value_count: { field: '_id' } };
     }
     if (metrics.includes('total_amount')) {
-        aggregations.push('STATS total_amount = SUM(amount)');
+        aggs.total_amount_awarded = { sum: { field: 'amount' } };
     }
     if (metrics.includes('avg_amount')) {
-        aggregations.push('STATS avg_amount = AVG(amount)');
+        aggs.average_amount = { avg: { field: 'amount' } };
     }
 
-    if (aggregations.length > 0) {
-        query += ` | ${aggregations.join(', ')}`;
-    }
+    const queryBody = {
+        query: {
+            bool: {
+                must: mustClauses,
+            },
+        },
+        size: 0, // We only want aggregations
+        aggs: Object.keys(aggs).length > 0 ? aggs : undefined,
+    };
 
     try {
-        const result = await fetchESQLQuery(query);
+        const result = await fetchElasticsearchSearch(index, queryBody);
+        const aggregations = result.aggregations || {};
+        
         return {
-            analytics: result.values?.[0] || {},
+            analytics: {
+                total_scholarships: aggregations.total_scholarships?.value || 0,
+                total_amount_awarded: aggregations.total_amount_awarded?.value || 0,
+                average_amount: aggregations.average_amount?.value || 0,
+            },
             timeRange,
             metrics,
         };

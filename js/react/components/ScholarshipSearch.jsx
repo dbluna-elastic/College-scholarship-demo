@@ -77,13 +77,13 @@ function ScholarshipSearch() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Keyword
+                            Major / Field of Study
                         </label>
                         <input
                             type="text"
                             value={searchCriteria.keyword}
                             onChange={(e) => setSearchCriteria({ ...searchCriteria, keyword: e.target.value })}
-                            placeholder="Search by name or description..."
+                            placeholder="e.g., Computer Science, Engineering, Business..."
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
@@ -192,41 +192,48 @@ function ScholarshipSearch() {
                                     <h4 className="text-lg font-bold text-gray-900 mb-2">
                                         {scholarship.name || `Scholarship ${index + 1}`}
                                     </h4>
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                                        {scholarship.description || 'No description available.'}
-                                    </p>
                                     <div className="space-y-2 mb-4">
-                                        {scholarship.amount && (
+                                        {scholarship.amount && scholarship.amount !== 'N/A' && (
                                             <div className="flex items-center gap-2 text-sm">
                                                 <span className="font-semibold text-gray-700">Amount:</span>
                                                 <span className="text-green-600 font-bold">
-                                                    ${scholarship.amount.toLocaleString()}
+                                                    {typeof scholarship.amount === 'number' 
+                                                        ? `$${scholarship.amount.toLocaleString()}` 
+                                                        : scholarship.amount}
                                                 </span>
                                             </div>
                                         )}
-                                        {scholarship.deadline && (
+                                        {scholarship.deadline && scholarship.deadline !== 'N/A' && (
                                             <div className="flex items-center gap-2 text-sm">
                                                 <span className="font-semibold text-gray-700">Deadline:</span>
                                                 <span className="text-gray-600">
-                                                    {new Date(scholarship.deadline).toLocaleDateString()}
+                                                    {scholarship.deadline}
                                                 </span>
                                             </div>
                                         )}
-                                        {scholarship.state && (
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <span className="font-semibold text-gray-700">State:</span>
-                                                <span className="text-gray-600">{scholarship.state}</span>
-                                            </div>
-                                        )}
                                     </div>
-                                    <button
-                                        className="w-full px-4 py-2 rounded-lg font-semibold text-white hover:opacity-90 transition-opacity"
-                                        style={{
-                                            backgroundColor: template?.colors?.primary || '#5D5FEF',
-                                        }}
-                                    >
-                                        Learn More
-                                    </button>
+                                    {scholarship.url ? (
+                                        <a
+                                            href={scholarship.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block w-full px-4 py-2 rounded-lg font-semibold text-white hover:opacity-90 transition-opacity text-center"
+                                            style={{
+                                                backgroundColor: template?.colors?.primary || '#5D5FEF',
+                                            }}
+                                        >
+                                            View Details →
+                                        </a>
+                                    ) : (
+                                        <button
+                                            className="w-full px-4 py-2 rounded-lg font-semibold text-white hover:opacity-90 transition-opacity"
+                                            style={{
+                                                backgroundColor: template?.colors?.primary || '#5D5FEF',
+                                            }}
+                                        >
+                                            Learn More
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>

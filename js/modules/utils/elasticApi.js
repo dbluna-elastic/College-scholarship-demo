@@ -155,3 +155,52 @@ export async function fetchAgentSearch(agentId, query) {
     const searchMessage = `Search for: ${query}`;
     return fetchAgentChat(agentId, searchMessage);
 }
+
+/**
+ * Executes a standard Elasticsearch _search query via the proxy
+ * 
+ * @param {string} index - Elasticsearch index name
+ * @param {Object} queryBody - Elasticsearch query body (RRF, standard query, etc.)
+ * @returns {Promise<Object>} Search results
+ */
+export async function fetchElasticsearchSearch(index, queryBody) {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        throw new Error('ELASTIC_API_KEY is required for Elasticsearch searches');
+    }
+
+    const maskedKey = maskValue(apiKey);
+    console.log('Executing Elasticsearch search:', {
+        index,
+        queryType: queryBody.retriever ? 'RRF' : 'standard',
+        apiKey: maskedKey,
+    });
+
+    try {
+        // Endpoint: /{index}/_search (nginx will rewrite /api/elastic/es/{index}/_search to /{index}/_search)
+        const response = await fetch(`/api/elastic/es/${index}/_search`, {
+            method: 'POST',
+            headers: createAuthHeaders(),
+            body: JSON.stringify(queryBody),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Elasticsearch search failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorText.substring(0, 200),
+            });
+            throw new Error(`Elasticsearch search failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Elasticsearch search successful:', {
+            hits: data.hits?.total?.value || data.hits?.total || 0,
+        });
+        return data;
+    } catch (error) {
+        console.error('Elasticsearch search error:', error.message);
+        throw error;
+    }
+}
