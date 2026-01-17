@@ -53,6 +53,12 @@ Required environment variables (see `env.template`):
 ```
 ├── js/
 │   ├── main.js                    # Main entry point
+│   ├── config/
+│   │   ├── templateEngine.js      # Template switching logic
+│   │   └── templates/
+│   │       ├── default.js         # Default/fallback template
+│   │       ├── texas.js           # Texas template
+│   │       └── oklahoma.js        # Oklahoma template
 │   └── modules/
 │       └── utils/
 │           └── getEnvVar.js       # Environment variable helper
@@ -65,8 +71,34 @@ Required environment variables (see `env.template`):
 └── docker-entrypoint.sh           # Entrypoint script for env injection
 ```
 
+## Phase 2: Template Engine ✅
+
+The template engine enables multi-tenant branding and content switching.
+
+### Template Detection
+
+Templates are detected in this order:
+1. URL parameter: `?template=texas`
+2. Subdomain: `texas.example.com`
+3. Environment variable: `TEMPLATE_ID=texas`
+4. Default fallback
+
+### Available Templates
+
+- **default** - Generic fallback
+- **texas** - Texas branding (Blue & Orange)
+- **oklahoma** - Oklahoma branding (Crimson & Cream)
+
+### Testing Templates
+
+See [TEMPLATE_TESTING.md](./TEMPLATE_TESTING.md) for detailed testing instructions.
+
+Quick test: Visit `http://localhost:8080?template=texas` to see Texas branding.
+
 ### Architecture Notes
 
 - **Environment Variables**: Use `getEnvVar(key, defaultValue)` helper to safely access env vars
+- **Template System**: Templates provide branding, content, colors, and Elastic configuration
+- **CSS Variables**: Template colors are applied as CSS variables for dynamic theming
 - **Proxy Routes**: Vite dev server and Nginx production server both proxy `/api/elastic/*` routes to Elastic Cloud
 - **Zero-Credentials Policy**: Never hardcode API keys or secrets in code
