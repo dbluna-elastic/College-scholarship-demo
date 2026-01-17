@@ -1,0 +1,25 @@
+---
+description: Security and Credential Management
+globs: **/*
+alwaysApply: true
+---
+
+# Security & Credentials
+
+## 1. Zero Hardcoding Policy
+- **NEVER** hardcode API keys, secrets, or tokens directly in the code.
+- If a secret is needed, the AI must check for an environment variable using the `getEnvVar()` pattern.
+- If a secret is missing, the AI should prompt the user: "Please add [KEY_NAME] to your .env file."
+
+## 2. Git Safety
+- **NEVER** suggest modifications to `.gitignore` that remove protection for `.env` or `config.json`.
+- Always assume `.env` is the source of truth for secrets and is ignored by Git.
+
+## 3. Masking in Logs
+- All logs involving API responses or requests must use a masking function:
+  `console.log('API Request:', maskValue(apiKey))`
+- Do not log full `Authorization` headers.
+
+## 4. Verification Checklist
+- Did I just paste a raw string that looks like a key? (STOP and use .env)
+- Is the `.env` file listed in `.gitignore`?
