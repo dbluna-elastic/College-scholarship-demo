@@ -1,0 +1,27 @@
+---
+description: General project architecture, tech stack, and global constraints
+globs: *
+alwaysApply: true
+---
+
+# Global Architecture
+
+## Tech Stack
+- Frontend: Vanilla JavaScript (ES6+) mixed with React 18
+- Build Tool: Vite 5
+- Styling: Tailwind CSS (VIA CDN) + custom `style.css`
+
+## Critical Constraints
+- **Tailwind is CDN-based**: Do NOT use `@apply`, `@tailwind` directives, or PostCSS features in CSS files. Use utility classes in HTML/JSX only.
+- **Environment Variables**: Use the `getEnvVar(key, default)` pattern to check both `window.env` and `process.env`.
+- **No jQuery**: Always use Vanilla DOM APIs.
+
+## File Naming
+- Vanilla Modules: `camelCase.js`
+- React Components: `PascalCase.jsx`
+- Utilities: `js/modules/utils/camelCase.js`
+
+## Verification Checklist
+- Is this using `const/let` instead of `var`?
+- Are sensitive keys masked in logs?
+- Does this avoid direct DOM manipulation if inside a React file?
