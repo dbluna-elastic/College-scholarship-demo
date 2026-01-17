@@ -15,7 +15,12 @@ import { maskValue } from './maskValue.js';
  * @returns {string} API key or empty string
  */
 function getApiKey() {
-    return getEnvVar('ELASTIC_API_KEY', '');
+    const apiKey = getEnvVar('ELASTIC_API_KEY', '');
+    // Debug: Log if API key is missing (but don't log the actual key)
+    if (!apiKey && typeof window !== 'undefined') {
+        console.warn('ELASTIC_API_KEY not found. window.env:', window.env ? Object.keys(window.env) : 'not defined');
+    }
+    return apiKey;
 }
 
 /**
@@ -52,6 +57,7 @@ export async function fetchESQLQuery(query, params = {}) {
     console.log('Executing ESQL query:', { query: query.substring(0, 100) + '...', apiKey: maskedKey });
 
     try {
+        // ESQL endpoint: /_query (nginx will rewrite /api/elastic/es/_query to /_query)
         const response = await fetch('/api/elastic/es/_query', {
             method: 'POST',
             headers: createAuthHeaders(),

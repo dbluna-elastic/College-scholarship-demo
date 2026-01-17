@@ -40,8 +40,12 @@ fi
 export ELASTIC_ES_URL=${ELASTIC_ES_URL:-https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud}
 export ELASTIC_KB_URL=${ELASTIC_KB_URL:-https://apex-dec2025-group4-b01431.kb.us-central1.gcp.elastic.cloud}
 
+# Extract hostnames from URLs for Host header (remove https:// prefix)
+export ELASTIC_ES_HOST=${ELASTIC_ES_URL#https://}
+export ELASTIC_KB_HOST=${ELASTIC_KB_URL#https://}
+
 # Use envsubst to replace variables in nginx.conf
-envsubst '${ELASTIC_ES_URL} ${ELASTIC_KB_URL}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+envsubst '${ELASTIC_ES_URL} ${ELASTIC_KB_URL} ${ELASTIC_ES_HOST} ${ELASTIC_KB_HOST}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
 # Start nginx
 exec nginx -g "daemon off;"

@@ -10,8 +10,12 @@
  */
 export function getEnvVar(key, defaultValue = '') {
     // Check window.env first (for runtime injection, e.g., via Docker env vars)
-    if (typeof window !== 'undefined' && window.env && window.env[key] !== undefined) {
-        return window.env[key];
+    if (typeof window !== 'undefined' && window.env) {
+        if (window.env[key] !== undefined && window.env[key] !== null) {
+            const value = window.env[key];
+            // Return the value even if it's an empty string (caller can check)
+            return value;
+        }
     }
     
     // Fallback to process.env (for build-time vars in Vite)
