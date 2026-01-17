@@ -1,0 +1,21 @@
+---
+description: Standards for Vanilla JS modules and utility functions
+globs: js/**/*.js, main.js
+---
+
+# JavaScript Module Standards
+
+## Structure
+- **Exports**: Use named exports only (`export function name()`).
+- **Imports**: Use destructuring (`import { a } from './b.js'`).
+- **Global Exposure**: If a module needs global access, use:
+  `if (typeof window !== 'undefined') { window.moduleName = { ... }; }`
+
+## State & Logic
+- Use module-level `let` variables for local state.
+- **JSDoc**: Required for all exported functions.
+  ```javascript
+  /**
+   * @param {Type} name - Description
+   * @returns {Type}
+   */
