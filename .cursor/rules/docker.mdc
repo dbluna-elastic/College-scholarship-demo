@@ -1,0 +1,18 @@
+---
+description: Docker configuration and containerization standards
+globs: Dockerfile, docker-compose.yml, nginx.conf
+---
+
+# Docker Standards
+
+## Build Strategy
+- Use **Multi-stage builds** to keep image sizes small.
+- Base image must be `node:20-alpine` (or newer) for builds.
+- Serve via `nginx:stable-alpine`.
+
+## Environment Variables
+- Do NOT hardcode `.env` values in the Dockerfile.
+- Use `env_file` in `docker-compose.yml` to inject secrets.
+
+## Proxy Sync
+- If a new proxy route is added to `vite.config.js`, the AI MUST remind the user to update `nginx.conf` to match, or the production build will fail.
