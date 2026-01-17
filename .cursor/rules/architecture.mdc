@@ -25,3 +25,8 @@ alwaysApply: true
 - Is this using `const/let` instead of `var`?
 - Are sensitive keys masked in logs?
 - Does this avoid direct DOM manipulation if inside a React file?
+
+## Template & Branding Rules
+- **No Hardcoded Copy**: Do not hardcode state-specific names (e.g., "Texas") in UI components.
+- **Reference the Template**: Use `window.currentTemplate.content.heroTitle` or the equivalent React context.
+- **Dynamic Styling**: Use CSS variables (e.g., `bg-[var(--primary-color)]`) instead of hardcoded hex codes in Tailwind classes.
