@@ -21,6 +21,38 @@ alwaysApply: true
 - React Components: `PascalCase.jsx`
 - Utilities: `js/modules/utils/camelCase.js`
 
+## Core Visual Language
+- **Theme:** Default to a deep, sophisticated dark mode (Background: `#0B0B0B`).
+- **Spacing:** Use "generous whitespace." Never cram elements. Use `gap-8` or `gap-12` for layout sections.
+- **Corners:** High rounding is mandatory. 
+  - Large Cards: `rounded-[32px]`
+  - Standard Buttons: `rounded-full` (Pill shape)
+  - Interactive elements: `rounded-2xl`
+- **Borders:** Use thin, high-contrast borders.
+  - Dark Mode: `border-white/[0.08]`
+  - Light Mode: `border-black/[0.05]`
+
+## Typography (Instrumental/Geometric)
+- **Primary Font:** 'Inter' or 'Instrument Sans'.
+- **Headings:** Use `font-black` (weight 900) or `font-extrabold`.
+- **Letter Spacing:** Apply `tracking-tighter` (-0.02em to -0.05em) to all headings `h1` through `h3`.
+- **Text Gradient:** Use gradients sparingly on hero text: `bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent`.
+
+## Color Palette (Tailwind Tokens)
+- **Neutral:** `bg-[#0B0B0B]` (Base), `bg-[#161616]` (Cards/Surface).
+- **Accents:** - Indigo: `#5D5FEF` (Primary action)
+  - Pink/Purple: `#B794F4`
+  - Warning/Orange: `#FF4F00`
+- **Gradients:** Use soft radial mesh gradients in backgrounds to create depth.
+
+## Component Patterns
+- **The Bento Grid:** Group features into varied-size grid cells with `backdrop-blur-md` and subtle borders.
+- **Glassmorphism:** Use `bg-white/5` with `backdrop-blur-xl` for navigation bars and floating overlays.
+- **Buttons:**
+  - Primary: Pill-shaped, indigo background, hover: brighten by 10%.
+  - Secondary: Pill-shaped, transparent background with `border-white/10`.
+- **Shadows:** Use large, diffuse shadows for depth: `shadow-[0_20px_50px_rgba(0,0,0,0.5)]`.
+
 ## Verification Checklist
 - Is this using `const/let` instead of `var`?
 - Are sensitive keys masked in logs?
