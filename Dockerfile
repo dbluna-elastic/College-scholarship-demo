@@ -16,11 +16,18 @@ RUN npm run build
 FROM nginx:stable-alpine
 WORKDIR /usr/share/nginx/html
 
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
 # Copy the built files from Stage 1
 COPY --from=build /app/dist .
 
-# Copy a custom Nginx config to handle React routing and Proxies
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config as template (will be processed by envsubst)
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

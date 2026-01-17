@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Scholarship Demo</title>
+    <!-- Environment variables will be injected here by docker-entrypoint.sh -->
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="bg-[#0B0B0B] text-white min-h-screen">
+    <div id="app" class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+            <h1 class="text-6xl font-black tracking-tighter mb-4 bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
+                Hello World
+            </h1>
+            <p class="text-white/60 text-lg">Vite + Docker is running!</p>
+        </div>
+    </div>
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>
