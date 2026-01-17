@@ -1,67 +1,83 @@
-// Main entry point for the application
-// This will be expanded in Phase 3 to initialize vanilla modules and mount React app
+/**
+ * Main entry point for the application
+ * 
+ * Phase 3: Hybrid Vanilla/React Architecture
+ * 
+ * Initialization order:
+ * 1. Template Engine (vanilla) - sets up branding/theme
+ * 2. Vanilla Modules - initialize any vanilla JS modules
+ * 3. React App - mount React components with template context
+ */
 
 import { getEnvVar } from './modules/utils/getEnvVar.js';
 import { initializeTemplateEngine, getCurrentTemplate } from './config/templateEngine.js';
+import { initNavigation } from './modules/navigation.js';
+import { initAnalytics } from './modules/analytics.js';
+import { mountReactApp } from './react/index.jsx';
 
 console.log('🚀 Application initialized');
 
-// Initialize template engine (must happen early)
-const template = initializeTemplateEngine();
+/**
+ * Initialize the application in the correct order
+ */
+async function initializeApp() {
+    // Step 1: Initialize template engine (must happen first)
+    const template = initializeTemplateEngine();
+    console.log('✅ Template engine initialized:', template.name);
 
-// Test getEnvVar helper
+    // Step 2: Update page title
+    document.title = template.branding.institutionName;
+
+    // Step 3: Initialize vanilla modules
+    initNavigation();
+    initAnalytics();
+    console.log('✅ Vanilla modules initialized');
+
+    // Step 4: Wait for DOM to be ready, then mount React
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mountReact);
+    } else {
+        mountReact();
+    }
+}
+
+/**
+ * Mounts the React app to the DOM
+ */
+function mountReact() {
+    const container = document.getElementById('app');
+    if (!container) {
+        console.error('❌ React mount failed: #app element not found');
+        return;
+    }
+
+    // Clear any existing content (like the loading template)
+    container.innerHTML = '';
+
+    // Mount React app
+    mountReactApp(container);
+}
+
+/**
+ * Listen for template changes and update React if needed
+ */
+window.addEventListener('templateChanged', (event) => {
+    const newTemplate = event.detail.template;
+    console.log('🔄 Template changed:', newTemplate.name);
+    
+    // Update page title
+    document.title = newTemplate.branding.institutionName;
+    
+    // React will automatically re-render if using context properly
+    // Vanilla modules are already listening via their own event handlers
+});
+
+// Start the application
+initializeApp();
+
+// Test getEnvVar helper (for debugging)
 const apiKey = getEnvVar('ELASTIC_API_KEY', '');
 console.log('Environment check:', {
     hasApiKey: !!apiKey,
     // Never log the actual key value
-});
-
-// Apply template content to the page
-function applyTemplateToPage() {
-    const currentTemplate = getCurrentTemplate();
-    
-    // Update page title
-    document.title = currentTemplate.branding.institutionName;
-    
-    // Update all data-template attributes
-    const templateElements = document.querySelectorAll('[data-template]');
-    templateElements.forEach(element => {
-        const key = element.getAttribute('data-template');
-        // Try common paths: content.key, branding.key, or direct key
-        let value = getNestedValue(currentTemplate, `content.${key}`) ||
-                   getNestedValue(currentTemplate, `branding.${key}`) ||
-                   getNestedValue(currentTemplate, key);
-        
-        if (value !== undefined && value !== null) {
-            element.textContent = value;
-        } else {
-            console.warn(`Template value not found for key: ${key}`);
-        }
-    });
-    
-    // Apply CSS variables are already set by templateEngine
-    console.log('✅ Template applied to page:', currentTemplate.name);
-}
-
-/**
- * Helper to get nested object values by dot notation
- * @param {Object} obj - Object to search
- * @param {string} path - Dot-separated path (e.g., "content.heroTitle")
- * @returns {*} Value at path or undefined
- */
-function getNestedValue(obj, path) {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-}
-
-// Apply template when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applyTemplateToPage);
-} else {
-    applyTemplateToPage();
-}
-
-// Listen for template changes (useful for dynamic switching)
-window.addEventListener('templateChanged', (event) => {
-    console.log('Template changed:', event.detail.template.name);
-    applyTemplateToPage();
 });

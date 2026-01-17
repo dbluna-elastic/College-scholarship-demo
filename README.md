@@ -52,16 +52,23 @@ Required environment variables (see `env.template`):
 
 ```
 ├── js/
-│   ├── main.js                    # Main entry point
+│   ├── main.js                    # Main entry point (orchestrates initialization)
 │   ├── config/
 │   │   ├── templateEngine.js      # Template switching logic
 │   │   └── templates/
 │   │       ├── default.js         # Default/fallback template
 │   │       ├── texas.js           # Texas template
 │   │       └── oklahoma.js        # Oklahoma template
-│   └── modules/
-│       └── utils/
-│           └── getEnvVar.js       # Environment variable helper
+│   ├── modules/                   # Vanilla JavaScript modules
+│   │   ├── navigation.js          # Navigation module (vanilla)
+│   │   ├── analytics.js           # Analytics module (vanilla)
+│   │   └── utils/
+│   │       └── getEnvVar.js      # Environment variable helper
+│   └── react/                     # React components
+│       ├── index.jsx              # React mount point
+│       ├── App.jsx                # Main React component
+│       └── context/
+│           └── TemplateContext.jsx # Template context provider
 ├── index.html                     # Main HTML file
 ├── style.css                      # Custom styles
 ├── vite.config.js                 # Vite configuration with proxy routes
@@ -74,6 +81,24 @@ Required environment variables (see `env.template`):
 ## Phase 2: Template Engine ✅
 
 The template engine enables multi-tenant branding and content switching.
+
+## Phase 3: Vanilla/React Hybrid Bridge ✅
+
+The application uses a hybrid architecture combining vanilla JavaScript modules with React components.
+
+### Architecture
+
+- **Initialization Order**: Template Engine → Vanilla Modules → React App
+- **State Sharing**: Template state shared via `window.currentTemplate` and React Context
+- **Coexistence**: Vanilla modules handle DOM manipulation, React handles UI components
+
+### Key Components
+
+- **Vanilla Modules**: `navigation.js`, `analytics.js` (example modules)
+- **React App**: `js/react/App.jsx` (main React component)
+- **Template Context**: `js/react/context/TemplateContext.jsx` (shares template with React)
+
+See [HYBRID_ARCHITECTURE.md](./HYBRID_ARCHITECTURE.md) for detailed architecture documentation.
 
 ### Template Detection
 
