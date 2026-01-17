@@ -1,0 +1,27 @@
+---
+description: Integration patterns for Elasticsearch and Elastic Agent Builder
+globs: **/*elastic*, js/modules/chatbot.js
+---
+
+# Elasticsearch & Agent Integration
+
+## Agent Builder Pattern (Priority)
+- **Do NOT** write manual RAG or inference logic. 
+- Use the **Elastic Agent Builder** proxy endpoint: `/api/elastic/agent/{agent_id}/chat`.
+- Default Agent ID: `studentcounselor`.
+
+## API & Proxy
+- All Elastic calls must go through the Vite proxy to avoid CORS:
+  - Elasticsearch: `/api/elastic/es`
+  - Kibana/Agent: `/api/elastic`
+- **Security**: Mask `ApiKey` in all console logs. Remove 'ApiKey ' prefix when processing raw keys.
+
+## ESQL Usage
+- Use ESQL for complex queries.
+- Wrap all fetch calls in `try/catch` and log specifically for 400, 401, and 403 errors.
+- Store failed requests in `window.debugApiStore`.
+
+## Verification Checklist
+- Does the endpoint start with `/api/elastic`?
+- Is `response.ok` checked before parsing JSON?
+- Is the `ELASTIC_AGENT_ID` env var used with a fallback?
