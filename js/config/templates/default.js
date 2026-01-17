@@ -21,6 +21,47 @@ export const defaultTemplate = {
         ctaSecondary: 'Learn More',
     },
     
+    // Navigation
+    navigation: {
+        links: [
+            { label: 'News', href: '#news' },
+            { label: 'Calendar', href: '#calendar' },
+            { label: 'Contact', href: '#contact' },
+            { label: 'About', href: '#about' },
+            { label: 'Academics', href: '#academics' },
+            { label: 'Admissions', href: '#admissions' },
+        ],
+    },
+    
+    // Hero Section
+    hero: {
+        backgroundImage: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80',
+        mainHeading: 'THE STATE WAY',
+        subHeading: 'Moving Forward. Together.',
+        ctaButtons: {
+            primary: 'Apply Now',
+            secondary: 'Visit Campus',
+        },
+    },
+    
+    // Footer
+    footer: {
+        address: '123 University Avenue, City, State 12345',
+        phone: '(555) 123-4567',
+        quickLinks: [
+            { label: 'Map', href: '#map' },
+            { label: 'Employment', href: '#employment' },
+            { label: 'Privacy', href: '#privacy' },
+            { label: 'Accessibility', href: '#accessibility' },
+        ],
+        socialMedia: [
+            { platform: 'FB', href: '#facebook', label: 'Facebook' },
+            { platform: 'TW', href: '#twitter', label: 'Twitter' },
+            { platform: 'IG', href: '#instagram', label: 'Instagram' },
+            { platform: 'LI', href: '#linkedin', label: 'LinkedIn' },
+        ],
+    },
+    
     // Color Palette (CSS Variables)
     colors: {
         primary: '#5D5FEF',      // Indigo

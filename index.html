@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>College Scholarship Demo</title>
     <!-- Environment variables will be injected here by docker-entrypoint.sh -->
+    <!-- Google Fonts - Playfair Display for serif headings -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/style.css">
 </head>
-<body class="bg-[var(--bg-base)] text-white min-h-screen" style="background-color: var(--bg-base);">
+<body class="bg-white min-h-screen">
     <!-- React App Mount Point -->
-    <div id="app" class="flex items-center justify-center min-h-screen py-12">
+    <div id="app" class="min-h-screen">
         <!-- Loading state (will be replaced by React) -->
-        <div class="text-center px-4">
-            <p class="text-white/60">Loading application...</p>
+        <div class="flex items-center justify-center min-h-screen">
+            <p class="text-gray-600">Loading application...</p>
         </div>
     </div>
     <script type="module" src="/js/main.js"></script>
