@@ -1,0 +1,7 @@
+src/
+  ├── config/
+  │   ├── templates/
+  │   │   ├── texas.js      <-- Branding & Copy for Texas
+  │   │   ├── oklahoma.js   <-- Branding & Copy for Oklahoma
+  │   │   └── default.js    <-- Fallback values
+  │   └── templateEngine.js <-- Logic to switch between them
