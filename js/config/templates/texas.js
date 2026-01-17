@@ -8,7 +8,7 @@ export const texasTemplate = {
     
     // Branding
     branding: {
-        institutionName: 'Texas College Scholarship Portal',
+        institutionName: 'Brazos Valley State University',
         tagline: 'Empowering Texas Students to Achieve Their Dreams',
         logo: '/logo-texas.svg',
     },
@@ -55,7 +55,7 @@ export const texasTemplate = {
     
     // Hero Section
     hero: {
-        backgroundImage: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80',
+        backgroundImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1920&q=80',
         mainHeading: 'THE STATE WAY',
         subHeading: 'Moving Forward. Together.',
         ctaButtons: {
@@ -85,5 +85,16 @@ export const texasTemplate = {
     // Elastic Configuration
     elastic: {
         agentId: null,  // Can be overridden via environment variable
+    },
+    
+    // Search Configuration
+    search: {
+        defaultFilters: {
+            state: 'Texas',  // Default to Texas for this template
+        },
+        preferences: {
+            sortBy: 'deadline',
+            sortOrder: 'ASC',
+        },
     },
 };

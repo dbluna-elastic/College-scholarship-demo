@@ -9,11 +9,15 @@
  * - Footer
  */
 
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { TemplateContext } from './context/TemplateContext.jsx';
+import ChatWidget from './components/ChatWidget.jsx';
+import ScholarshipSearch from './components/ScholarshipSearch.jsx';
+import AnalyticsDashboard from './components/AnalyticsDashboard.jsx';
 
 function App() {
     const template = useContext(TemplateContext);
+    const [activeSection, setActiveSection] = useState('home'); // 'home', 'search', 'analytics'
 
     useEffect(() => {
         console.log('⚛️ React App mounted with template:', template?.name);
@@ -39,7 +43,7 @@ function App() {
             category: 'Student Success',
             title: 'Graduates Achieve 95% Employment Rate',
             description: 'This year\'s graduating class has set a new record for post-graduation employment.',
-            image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80',
         },
         {
             category: 'Campus Life',
@@ -48,6 +52,79 @@ function App() {
             image: 'https://images.unsplash.com/photo-1562774053-701939374585?w=800&q=80',
         },
     ];
+
+    // Render different sections based on activeSection
+    if (activeSection === 'search') {
+        return (
+            <div className="w-full min-h-screen bg-white">
+                {/* Navigation */}
+                <nav className="bg-white border-b border-gray-200">
+                    <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex items-center justify-between h-20">
+                            <button
+                                onClick={() => setActiveSection('home')}
+                                className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                            >
+                                {template.branding.institutionName}
+                            </button>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setActiveSection('home')}
+                                    className="px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                                >
+                                    Home
+                                </button>
+                                <button
+                                    onClick={() => setActiveSection('analytics')}
+                                    className="px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                                >
+                                    Analytics
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                <ScholarshipSearch />
+                <ChatWidget floating={true} />
+            </div>
+        );
+    }
+
+    if (activeSection === 'analytics') {
+        return (
+            <div className="w-full min-h-screen bg-white">
+                {/* Navigation */}
+                <nav className="bg-white border-b border-gray-200">
+                    <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex items-center justify-between h-20">
+                            <button
+                                onClick={() => setActiveSection('home')}
+                                className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                            >
+                                {template.branding.institutionName}
+                            </button>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setActiveSection('home')}
+                                    className="px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                                >
+                                    Home
+                                </button>
+                                <button
+                                    onClick={() => setActiveSection('search')}
+                                    className="px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                                >
+                                    Search Scholarships
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                <AnalyticsDashboard />
+                <ChatWidget floating={true} />
+            </div>
+        );
+    }
 
     return (
         <div className="w-full min-h-screen bg-white">
@@ -105,6 +182,36 @@ function App() {
 
                         {/* Navigation Links */}
                         <div className="hidden md:flex items-center gap-8">
+                            <button
+                                onClick={() => setActiveSection('home')}
+                                className={`font-medium transition-colors ${
+                                    activeSection === 'home'
+                                        ? 'text-blue-600'
+                                        : 'text-gray-900 hover:text-blue-600'
+                                }`}
+                            >
+                                Home
+                            </button>
+                            <button
+                                onClick={() => setActiveSection('search')}
+                                className={`font-medium transition-colors ${
+                                    activeSection === 'search'
+                                        ? 'text-blue-600'
+                                        : 'text-gray-900 hover:text-blue-600'
+                                }`}
+                            >
+                                Search Scholarships
+                            </button>
+                            <button
+                                onClick={() => setActiveSection('analytics')}
+                                className={`font-medium transition-colors ${
+                                    activeSection === 'analytics'
+                                        ? 'text-blue-600'
+                                        : 'text-gray-900 hover:text-blue-600'
+                                }`}
+                            >
+                                Analytics
+                            </button>
                             {template.navigation?.links?.map((link, index) => (
                                 <a
                                     key={index}
@@ -131,7 +238,7 @@ function App() {
             <section
                 className="relative h-[600px] flex items-center justify-center text-white"
                 style={{
-                    backgroundImage: `linear-gradient(rgba(26, 35, 50, 0.65), rgba(26, 35, 50, 0.65)), url(${template.hero?.backgroundImage || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80'})`,
+                    backgroundImage: `linear-gradient(rgba(26, 35, 50, 0.65), rgba(26, 35, 50, 0.65)), url(${template.hero?.backgroundImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1920&q=80'})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                 }}
@@ -286,6 +393,9 @@ function App() {
                     </div>
                 </div>
             </footer>
+
+            {/* Chat Widget - Floating */}
+            <ChatWidget floating={true} />
         </div>
     );
 }

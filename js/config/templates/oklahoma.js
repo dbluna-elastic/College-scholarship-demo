@@ -8,7 +8,7 @@ export const oklahomaTemplate = {
     
     // Branding
     branding: {
-        institutionName: 'Oklahoma College Scholarship Portal',
+        institutionName: 'Red River State University',
         tagline: 'Supporting Oklahoma Students in Their Educational Journey',
         logo: '/logo-oklahoma.svg',
     },
@@ -55,7 +55,7 @@ export const oklahomaTemplate = {
     
     // Hero Section
     hero: {
-        backgroundImage: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80',
+        backgroundImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1920&q=80',
         mainHeading: 'THE STATE WAY',
         subHeading: 'Moving Forward. Together.',
         ctaButtons: {
@@ -85,5 +85,16 @@ export const oklahomaTemplate = {
     // Elastic Configuration
     elastic: {
         agentId: null,  // Can be overridden via environment variable
+    },
+    
+    // Search Configuration
+    search: {
+        defaultFilters: {
+            state: 'Oklahoma',  // Default to Oklahoma for this template
+        },
+        preferences: {
+            sortBy: 'deadline',
+            sortOrder: 'ASC',
+        },
     },
 };

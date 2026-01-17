@@ -22,6 +22,12 @@ if [ -f /usr/share/nginx/html/index.html ]; then
         ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_AGENT_ID:'$ELASTIC_AGENT_ID',"
     fi
     
+    # Add ELASTIC_API_KEY if set (required for API calls)
+    # Note: This is injected into the page, so ensure proper security measures
+    if [ -n "$ELASTIC_API_KEY" ]; then
+        ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_API_KEY:'$ELASTIC_API_KEY',"
+    fi
+    
     # Close the object
     ENV_SCRIPT="${ENV_SCRIPT}};</script>"
     

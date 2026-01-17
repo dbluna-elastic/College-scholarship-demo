@@ -8,7 +8,7 @@ export const defaultTemplate = {
     
     // Branding
     branding: {
-        institutionName: 'College Scholarship Portal',
+        institutionName: 'Generic State University',
         tagline: 'Find Your Path to Higher Education',
         logo: '/logo-default.svg',
     },
@@ -35,7 +35,7 @@ export const defaultTemplate = {
     
     // Hero Section
     hero: {
-        backgroundImage: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80',
+        backgroundImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1920&q=80',
         mainHeading: 'THE STATE WAY',
         subHeading: 'Moving Forward. Together.',
         ctaButtons: {
@@ -81,5 +81,16 @@ export const defaultTemplate = {
     // Elastic Configuration
     elastic: {
         agentId: null,  // Will be set from environment or template-specific config
+    },
+    
+    // Search Configuration
+    search: {
+        defaultFilters: {
+            state: null,  // No default state filter for generic template
+        },
+        preferences: {
+            sortBy: 'deadline',
+            sortOrder: 'ASC',
+        },
     },
 };
