@@ -15,3 +15,36 @@ body {
     --navy-blue: #1a2332;
     --serif-font: 'Playfair Display', Georgia, 'Times New Roman', serif;
 }
+
+/* Pulsing animation for chatbot button */
+@keyframes pulse-ring {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1.4);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse-button {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.chatbot-pulse-ring {
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.chatbot-pulse-button {
+    animation: pulse-button 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
