@@ -14,14 +14,31 @@ import { TemplateContext } from './context/TemplateContext.jsx';
 import ChatWidget from './components/ChatWidget.jsx';
 import ScholarshipSearch from './components/ScholarshipSearch.jsx';
 import AnalyticsDashboard from './components/AnalyticsDashboard.jsx';
+import LoginModal from './components/LoginModal.jsx';
+import StudentDashboard from './components/StudentDashboard.jsx';
+import CounselorDashboard from './components/CounselorDashboard.jsx';
 
 function App() {
     const template = useContext(TemplateContext);
-    const [activeSection, setActiveSection] = useState('home'); // 'home', 'search', 'analytics'
+    const [activeSection, setActiveSection] = useState('home'); // 'home', 'search', 'analytics', 'student-dashboard', 'counselor-dashboard'
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [userRole, setUserRole] = useState(null); // 'student' | 'counselor' | null
 
     useEffect(() => {
         console.log('⚛️ React App mounted with template:', template?.name);
     }, [template]);
+
+    const handleLogin = (campusId, password) => {
+        if (password === 'test') {
+            setUserRole('student');
+            setActiveSection('student-dashboard');
+            setShowLoginModal(false);
+        } else if (password === 'staff') {
+            setUserRole('counselor');
+            setActiveSection('counselor-dashboard');
+            setShowLoginModal(false);
+        }
+    };
 
     if (!template) {
         return (
@@ -54,6 +71,14 @@ function App() {
     ];
 
     // Render different sections based on activeSection
+    if (activeSection === 'student-dashboard') {
+        return <StudentDashboard />;
+    }
+
+    if (activeSection === 'counselor-dashboard') {
+        return <CounselorDashboard />;
+    }
+
     if (activeSection === 'search') {
         return (
             <div className="w-full min-h-screen bg-white">
@@ -132,10 +157,22 @@ function App() {
             <header className="bg-[#1a2332] text-white py-2">
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex justify-end items-center gap-4">
-                        {/* Login Button */}
-                        <button className="px-4 py-1.5 text-sm font-medium hover:opacity-80 transition-opacity">
-                            Login
-                        </button>
+                        {/* Login Button with Pulsing Animation */}
+                        <div className="relative">
+                            {/* Pulsing ring effect */}
+                            <div 
+                                className="absolute inset-0 rounded chatbot-pulse-ring opacity-50"
+                                style={{
+                                    backgroundColor: template?.colors?.primary || '#5D5FEF',
+                                }}
+                            ></div>
+                            <button 
+                                onClick={() => setShowLoginModal(true)}
+                                className="relative px-4 py-1.5 text-sm font-medium hover:opacity-80 transition-opacity chatbot-pulse-button"
+                            >
+                                Login
+                            </button>
+                        </div>
                         
                         {/* Globe Icon */}
                         <button className="p-1.5 hover:opacity-80 transition-opacity">
@@ -398,6 +435,13 @@ function App() {
 
             {/* Chat Widget - Floating */}
             <ChatWidget floating={true} />
+
+            {/* Login Modal */}
+            <LoginModal 
+                isOpen={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+                onLogin={handleLogin}
+            />
         </div>
     );
 }

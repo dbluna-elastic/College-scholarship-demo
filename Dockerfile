@@ -16,10 +16,23 @@ RUN npm run build
 FROM nginx:stable-alpine
 WORKDIR /usr/share/nginx/html
 
-# Install gettext for envsubst
-RUN apk add --no-cache gettext
+# Install gettext for envsubst and curl/tar for Elastic Agent
+RUN apk add --no-cache gettext curl tar
+
+# Install Elastic Agent 9.2.4
+WORKDIR /opt
+RUN ARCH=$(if [ "$(uname -m)" = "arm" ] || [ "$(uname -m)" = "aarch64" ]; then echo "arm64"; else echo "$(uname -m)"; fi) && \
+    curl --output elastic-agent-9.2.4-linux-${ARCH}.tar.gz \
+         --url https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-9.2.4-linux-${ARCH}.tar.gz \
+         --proto '=https' --tlsv1.2 -fL && \
+    mkdir -p elastic-agent-9.2.4-linux-${ARCH} && \
+    tar -xvf elastic-agent-9.2.4-linux-${ARCH}.tar.gz -C elastic-agent-9.2.4-linux-${ARCH} --strip-components=1 && \
+    mv elastic-agent-9.2.4-linux-${ARCH} /opt/elastic-agent && \
+    rm -f elastic-agent-9.2.4-linux-${ARCH}.tar.gz && \
+    mkdir -p /opt/elastic-agent/data/otelcol
 
 # Copy the built files from Stage 1
+WORKDIR /usr/share/nginx/html
 COPY --from=build /app/dist .
 
 # Copy nginx config as template (will be processed by envsubst)
