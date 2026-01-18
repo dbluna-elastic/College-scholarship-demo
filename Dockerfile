@@ -16,20 +16,20 @@ RUN npm run build
 FROM nginx:stable-alpine
 WORKDIR /usr/share/nginx/html
 
-# Install gettext for envsubst and curl/tar for Elastic Agent
+# Install gettext for envsubst and curl/tar for OpenTelemetry Collector
 RUN apk add --no-cache gettext curl tar
 
-# Install Elastic Agent 9.2.4
+# Install OpenTelemetry Collector (EDOT - Elastic Distribution)
 WORKDIR /opt
 RUN ARCH=$(if [ "$(uname -m)" = "arm" ] || [ "$(uname -m)" = "aarch64" ]; then echo "arm64"; else echo "$(uname -m)"; fi) && \
-    curl --output elastic-agent-9.2.4-linux-${ARCH}.tar.gz \
-         --url https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-9.2.4-linux-${ARCH}.tar.gz \
+    curl --output otelcol-contrib_linux_${ARCH}.tar.gz \
+         --url https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.112.0/otelcol-contrib_0.112.0_linux_${ARCH}.tar.gz \
          --proto '=https' --tlsv1.2 -fL && \
-    mkdir -p elastic-agent-9.2.4-linux-${ARCH} && \
-    tar -xvf elastic-agent-9.2.4-linux-${ARCH}.tar.gz -C elastic-agent-9.2.4-linux-${ARCH} --strip-components=1 && \
-    mv elastic-agent-9.2.4-linux-${ARCH} /opt/elastic-agent && \
-    rm -f elastic-agent-9.2.4-linux-${ARCH}.tar.gz && \
-    mkdir -p /opt/elastic-agent/data/otelcol
+    mkdir -p /opt/otelcol && \
+    tar -xvf otelcol-contrib_linux_${ARCH}.tar.gz -C /opt/otelcol && \
+    rm -f otelcol-contrib_linux_${ARCH}.tar.gz && \
+    chmod +x /opt/otelcol/otelcol-contrib && \
+    mkdir -p /opt/otelcol/data
 
 # Copy the built files from Stage 1
 WORKDIR /usr/share/nginx/html
