@@ -9,7 +9,7 @@ import { useContext } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import ChatWidget from './ChatWidget.jsx';
 
-function StudentDashboard() {
+function StudentDashboard({ onLogout }) {
     const template = useContext(TemplateContext);
 
     if (!template) {
@@ -28,6 +28,16 @@ function StudentDashboard() {
                     <div className="flex justify-end items-center gap-4">
                         {/* User Info */}
                         <span className="text-sm">Student Dashboard</span>
+                        
+                        {/* Logout Button */}
+                        {onLogout && (
+                            <button
+                                onClick={onLogout}
+                                className="px-4 py-1.5 text-sm font-medium hover:opacity-80 transition-opacity"
+                            >
+                                Logout
+                            </button>
+                        )}
                         
                         {/* Globe Icon */}
                         <button className="p-1.5 hover:opacity-80 transition-opacity">

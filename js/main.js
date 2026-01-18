@@ -5,14 +5,16 @@
  * 
  * Initialization order:
  * 1. Template Engine (vanilla) - sets up branding/theme
- * 2. Vanilla Modules - initialize any vanilla JS modules
- * 3. React App - mount React components with template context
+ * 2. OpenTelemetry Tracing - initialize after template is available
+ * 3. Vanilla Modules - initialize any vanilla JS modules
+ * 4. React App - mount React components with template context
  */
 
 import { getEnvVar } from './modules/utils/getEnvVar.js';
 import { initializeTemplateEngine, getCurrentTemplate } from './config/templateEngine.js';
 import { initNavigation } from './modules/navigation.js';
 import { initAnalytics } from './modules/analytics.js';
+import { initTracing } from './modules/tracing.js';
 import { mountReactApp } from './react/index.jsx';
 
 console.log('🚀 Application initialized');
@@ -28,12 +30,19 @@ async function initializeApp() {
     // Step 2: Update page title
     document.title = template.branding.institutionName;
 
-    // Step 3: Initialize vanilla modules
+    // Step 3: Initialize OpenTelemetry tracing (after template is available)
+    try {
+        initTracing();
+    } catch (error) {
+        console.warn('⚠️ Tracing initialization failed, continuing without tracing:', error);
+    }
+
+    // Step 4: Initialize vanilla modules
     initNavigation();
     initAnalytics();
     console.log('✅ Vanilla modules initialized');
 
-    // Step 4: Wait for DOM to be ready, then mount React
+    // Step 5: Wait for DOM to be ready, then mount React
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', mountReact);
     } else {

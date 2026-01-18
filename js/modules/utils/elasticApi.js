@@ -9,6 +9,7 @@
 
 import { getEnvVar } from './getEnvVar.js';
 import { maskValue } from './maskValue.js';
+import { tracedFetch } from './tracingHelpers.js';
 
 /**
  * Gets the Elastic API key from environment
@@ -65,7 +66,7 @@ export async function fetchESQLQuery(query, params = {}) {
 
     try {
         // ESQL endpoint: /_query (nginx will rewrite /api/elastic/es/_query to /_query)
-        const response = await fetch('/api/elastic/es/_query', {
+        const response = await tracedFetch('/api/elastic/es/_query', {
             method: 'POST',
             headers: createAuthHeaders(),
             body: JSON.stringify({
@@ -127,7 +128,7 @@ export async function fetchAgentChat(agentId, message, conversationId = null) {
             ...(conversationId && { conversation_id: conversationId }),
         };
 
-        const response = await fetch(`/api/elastic/agent/${agentId}/chat`, {
+        const response = await tracedFetch(`/api/elastic/agent/${agentId}/chat`, {
             method: 'POST',
             headers: createAuthHeaders(true), // Include kbn-xsrf header
             body: JSON.stringify(requestBody),
@@ -197,7 +198,7 @@ export async function fetchElasticsearchSearch(index, queryBody) {
 
     try {
         // Endpoint: /{index}/_search (nginx will rewrite /api/elastic/es/{index}/_search to /{index}/_search)
-        const response = await fetch(`/api/elastic/es/${index}/_search`, {
+        const response = await tracedFetch(`/api/elastic/es/${index}/_search`, {
             method: 'POST',
             headers: createAuthHeaders(),
             body: JSON.stringify(queryBody),

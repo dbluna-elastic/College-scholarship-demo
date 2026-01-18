@@ -17,6 +17,7 @@ import AnalyticsDashboard from './components/AnalyticsDashboard.jsx';
 import LoginModal from './components/LoginModal.jsx';
 import StudentDashboard from './components/StudentDashboard.jsx';
 import CounselorDashboard from './components/CounselorDashboard.jsx';
+import { getApm, setUserContext, clearUserContext } from '../modules/tracing.js';
 
 function App() {
     const template = useContext(TemplateContext);
@@ -28,16 +29,81 @@ function App() {
         console.log('⚛️ React App mounted with template:', template?.name);
     }, [template]);
 
+    // Track route changes for RUM
+    useEffect(() => {
+        const apm = getApm();
+        if (apm && activeSection) {
+            // Start a new transaction for route change
+            const transaction = apm.startTransaction(`Route: ${activeSection}`, 'route-change');
+            transaction.addLabels({
+                'route.name': activeSection,
+                'route.type': activeSection.includes('dashboard') ? 'dashboard' : 'page',
+            });
+            
+            // End transaction after a short delay to capture route load
+            setTimeout(() => {
+                transaction.end();
+            }, 100);
+        }
+    }, [activeSection]);
+
     const handleLogin = (campusId, password) => {
+        const apm = getApm();
+        
         if (password === 'test') {
             setUserRole('student');
             setActiveSection('student-dashboard');
             setShowLoginModal(false);
+            
+            // Set user context for RUM
+            if (apm) {
+                setUserContext({
+                    id: campusId || 'student',
+                    username: campusId || 'student',
+                    role: 'student',
+                });
+                
+                // Track login event
+                apm.addLabels({
+                    'user.action': 'login',
+                    'user.role': 'student',
+                });
+            }
         } else if (password === 'staff') {
             setUserRole('counselor');
             setActiveSection('counselor-dashboard');
             setShowLoginModal(false);
+            
+            // Set user context for RUM
+            if (apm) {
+                setUserContext({
+                    id: campusId || 'counselor',
+                    username: campusId || 'counselor',
+                    role: 'counselor',
+                });
+                
+                // Track login event
+                apm.addLabels({
+                    'user.action': 'login',
+                    'user.role': 'counselor',
+                });
+            }
         }
+    };
+
+    const handleLogout = () => {
+        const apm = getApm();
+        
+        // Clear user context for RUM
+        if (apm) {
+            clearUserContext();
+            apm.addLabels({
+                'user.action': 'logout',
+            });
+        }
+        
+        setUserRole(null);
+        setActiveSection('home');
     };
 
     if (!template) {
@@ -72,11 +138,11 @@ function App() {
 
     // Render different sections based on activeSection
     if (activeSection === 'student-dashboard') {
-        return <StudentDashboard />;
+        return <StudentDashboard onLogout={handleLogout} />;
     }
 
     if (activeSection === 'counselor-dashboard') {
-        return <CounselorDashboard />;
+        return <CounselorDashboard onLogout={handleLogout} />;
     }
 
     if (activeSection === 'search') {

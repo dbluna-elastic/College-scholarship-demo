@@ -28,6 +28,26 @@ if [ -f /usr/share/nginx/html/index.html ]; then
         ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_API_KEY:'$ELASTIC_API_KEY',"
     fi
     
+    # Add ELASTIC_APM_SERVER_URL if set (for browser APM agent)
+    if [ -n "$ELASTIC_APM_SERVER_URL" ]; then
+        ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_APM_SERVER_URL:'$ELASTIC_APM_SERVER_URL',"
+    fi
+    
+    # Add ELASTIC_APM_API_KEY if set (for browser APM agent authentication)
+    if [ -n "$ELASTIC_APM_API_KEY" ]; then
+        ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_APM_API_KEY:'$ELASTIC_APM_API_KEY',"
+    fi
+    
+    # Add ELASTIC_APM_SECRET_TOKEN if set (alternative to API key)
+    if [ -n "$ELASTIC_APM_SECRET_TOKEN" ]; then
+        ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_APM_SECRET_TOKEN:'$ELASTIC_APM_SECRET_TOKEN',"
+    fi
+    
+    # Add ELASTIC_APM_SERVICE_NAME if set (optional override)
+    if [ -n "$ELASTIC_APM_SERVICE_NAME" ]; then
+        ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_APM_SERVICE_NAME:'$ELASTIC_APM_SERVICE_NAME',"
+    fi
+    
     # Close the object
     ENV_SCRIPT="${ENV_SCRIPT}};</script>"
     
@@ -47,100 +67,117 @@ export ELASTIC_KB_HOST=${ELASTIC_KB_URL#https://}
 # Use envsubst to replace variables in nginx.conf
 envsubst '${ELASTIC_ES_URL} ${ELASTIC_KB_URL} ${ELASTIC_ES_HOST} ${ELASTIC_KB_HOST}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
-# Configure and start OpenTelemetry Collector if API key is provided
-if [ -n "$ELASTIC_OTLP_API_KEY" ] && [ -f "/opt/otelcol/otelcol-contrib" ]; then
-    # Set default OTLP endpoint if not provided
-    # OTLP HTTP exporter automatically appends /v1/metrics, so use base URL only
-    export ELASTIC_OTLP_ENDPOINT=${ELASTIC_OTLP_ENDPOINT:-https://gawdzilla-0d3e9e.ingest.us-east-2.aws.elastic-cloud.com:443}
+# Configure and start Elastic Agent if API key is provided
+if [ -n "$ELASTIC_AGENT_API_KEY" ] && [ -f "/opt/elastic-agent/elastic-agent" ]; then
+    echo "ELASTIC_AGENT_API_KEY is set, configuring and starting Elastic Agent..."
     
-    # Remove any trailing paths - OTLP exporter handles paths automatically
-    OTLP_ENDPOINT="${ELASTIC_OTLP_ENDPOINT%%/*}"
-    if [ "${ELASTIC_OTLP_ENDPOINT#*://}" != "${ELASTIC_OTLP_ENDPOINT}" ]; then
-        # Has protocol, extract host:port
-        OTLP_ENDPOINT="${ELASTIC_OTLP_ENDPOINT#*://}"
-        OTLP_ENDPOINT="${OTLP_ENDPOINT%%/*}"
-        OTLP_ENDPOINT="${ELASTIC_OTLP_ENDPOINT%%://*}//${OTLP_ENDPOINT}"
-    fi
+    AGENT_DIR="/opt/elastic-agent"
+    AGENT_CONFIG_PATH="${AGENT_DIR}/elastic-agent.yml"
     
-    # Create otel config directory
-    mkdir -p /opt/otelcol/config
+    # Set default Fleet URL if not provided (for managed mode)
+    # For standalone mode, we'll use direct output configuration
+    export ELASTIC_AGENT_FLEET_URL=${ELASTIC_AGENT_FLEET_URL:-""}
     
-    # Create OpenTelemetry Collector configuration
-    cat > /opt/otelcol/config/otel.yml <<EOF
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
-  hostmetrics:
-    collection_interval: 10s
-    scrapers:
-      cpu:
-      memory:
-      disk:
-      network:
+    # Create Elastic Agent configuration for standalone mode (logs and metrics)
+    # This uses filebeat and metricbeat integrations
+    cat > "${AGENT_CONFIG_PATH}" <<EOF
+outputs:
+  default:
+    type: elasticsearch
+    hosts: ["${ELASTIC_ES_URL:-https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud}"]
+    api_key: "${ELASTIC_AGENT_API_KEY}"
+    ssl.verification_mode: certificate
 
-processors:
-  resourcedetection:
-    detectors: [env, system]
-  batch:
-    timeout: 5s
-    send_batch_size: 1000
-
-exporters:
-  otlphttp:
-    endpoint: ${ELASTIC_OTLP_ENDPOINT}
-    headers:
-      Authorization: "ApiKey ${ELASTIC_OTLP_API_KEY}"
-    tls:
-      insecure: false
-    compression: gzip
-
-service:
-  telemetry:
-    logs:
-      level: debug
-  pipelines:
-    metrics:
-      receivers: [otlp, hostmetrics]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp]
+inputs:
+  - type: logfile
+    id: nginx-access-logs
+    streams:
+      - id: nginx-access
+        paths:
+          - /var/log/nginx/access.log
+        processors:
+          - add_fields:
+              fields:
+                log.source: nginx
+                service.name: Scholarshipdemo
+                log.type: access
+  - type: logfile
+    id: nginx-error-logs
+    streams:
+      - id: nginx-error
+        paths:
+          - /var/log/nginx/error.log
+        processors:
+          - add_fields:
+              fields:
+                log.source: nginx
+                service.name: Scholarshipdemo
+                log.type: error
+  - type: system/metrics
+    id: system-metrics
+    streams:
+      - id: cpu
+        metricsets: ["cpu"]
+        period: 10s
+      - id: memory
+        metricsets: ["memory"]
+        period: 10s
+      - id: disk
+        metricsets: ["disk"]
+        period: 10s
+      - id: network
+        metricsets: ["network"]
+        period: 10s
+    processors:
+      - add_fields:
+          fields:
+            service.name: Scholarshipdemo
 EOF
     
-    # Validate configuration before starting
-    echo "Validating OpenTelemetry Collector configuration..."
-    if /opt/otelcol/otelcol-contrib --config=config/otel.yml --dry-run 2>&1 | head -5; then
-        echo "Configuration is valid"
-    else
-        echo "Warning: Configuration validation had issues, but continuing..."
+    # Start Elastic Agent in the background (standalone mode)
+    echo "Starting Elastic Agent in standalone mode..."
+    # Use absolute path to elastic-agent (resolve symlink)
+    AGENT_BINARY="/opt/elastic-agent/elastic-agent"
+    if [ ! -f "${AGENT_BINARY}" ]; then
+        # Try to find the actual binary if symlink doesn't work
+        AGENT_BINARY=$(readlink -f "${AGENT_BINARY}" 2>/dev/null || echo "${AGENT_BINARY}")
     fi
     
-    # Start OpenTelemetry Collector in the background
-    echo "Starting OpenTelemetry Collector..."
-    echo "Endpoint: ${OTLP_ENDPOINT}"
-    cd /opt/otelcol
-    mkdir -p /var/log
-    nohup ./otelcol-contrib --config=config/otel.yml > /var/log/otelcol.log 2>&1 &
-    COLLECTOR_PID=$!
-    echo $COLLECTOR_PID > /var/run/otelcol.pid
-    echo "OpenTelemetry Collector started with PID $COLLECTOR_PID"
-    
-    # Wait a moment and check if it's still running
-    sleep 2
-    if kill -0 $COLLECTOR_PID 2>/dev/null; then
-        echo "OpenTelemetry Collector is running"
+    if [ ! -f "${AGENT_BINARY}" ]; then
+        echo "Error: Elastic Agent binary not found at ${AGENT_BINARY}"
     else
-        echo "Warning: OpenTelemetry Collector may have failed to start. Check /var/log/otelcol.log"
-        tail -20 /var/log/otelcol.log 2>/dev/null || echo "No log file found"
+        mkdir -p /var/log
+        nohup "${AGENT_BINARY}" run -c "${AGENT_CONFIG_PATH}" > /var/log/elastic-agent.log 2>&1 &
+        AGENT_PID=$!
+        echo $AGENT_PID > /var/run/elastic-agent.pid
+        echo "Elastic Agent started with PID $AGENT_PID"
+        
+        # Wait a moment and check if it's still running
+        sleep 2
+        if kill -0 $AGENT_PID 2>/dev/null; then
+            echo "Elastic Agent is running"
+        else
+            echo "Warning: Elastic Agent may have failed to start. Check /var/log/elastic-agent.log"
+            tail -20 /var/log/elastic-agent.log 2>/dev/null || echo "No log file found"
+        fi
     fi
 else
-    if [ -z "$ELASTIC_OTLP_API_KEY" ]; then
-        echo "ELASTIC_OTLP_API_KEY not set, skipping OpenTelemetry Collector startup"
-    elif [ ! -f "/opt/otelcol/otelcol-contrib" ]; then
-        echo "OpenTelemetry Collector binary not found at /opt/otelcol/otelcol-contrib"
+    if [ -z "$ELASTIC_AGENT_API_KEY" ]; then
+        echo "ELASTIC_AGENT_API_KEY not set, skipping Elastic Agent startup"
+    elif [ ! -f "/opt/elastic-agent/elastic-agent" ]; then
+        echo "Elastic Agent binary not found at /opt/elastic-agent/elastic-agent"
     fi
+fi
+
+# Remove nginx log symlinks if they exist (they point to stdout/stderr)
+# We need actual files for the filelog receiver
+if [ -L /var/log/nginx/access.log ]; then
+    rm -f /var/log/nginx/access.log
+    touch /var/log/nginx/access.log
+fi
+if [ -L /var/log/nginx/error.log ]; then
+    rm -f /var/log/nginx/error.log
+    touch /var/log/nginx/error.log
 fi
 
 # Start nginx
