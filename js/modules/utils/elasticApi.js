@@ -25,19 +25,26 @@ function getApiKey() {
 
 /**
  * Creates Authorization header for Elastic API requests
+ * @param {boolean} includeKbnXsrf - Whether to include kbn-xsrf header (for Kibana/Agent Builder)
  * @returns {Object} Headers object with Authorization
  */
-function createAuthHeaders() {
+function createAuthHeaders(includeKbnXsrf = false) {
     const apiKey = getApiKey();
     if (!apiKey) {
         console.warn('ELASTIC_API_KEY not found in environment');
         return {};
     }
     
-    return {
+    const headers = {
         'Authorization': `ApiKey ${apiKey}`,
         'Content-Type': 'application/json',
     };
+    
+    if (includeKbnXsrf) {
+        headers['kbn-xsrf'] = 'true';
+    }
+    
+    return headers;
 }
 
 /**
@@ -113,14 +120,16 @@ export async function fetchAgentChat(agentId, message, conversationId = null) {
     });
 
     try {
+        // Payload format per Elastic Agent Builder API: agent_id and input
         const requestBody = {
-            message,
+            agent_id: agentId,
+            input: message,
             ...(conversationId && { conversation_id: conversationId }),
         };
 
         const response = await fetch(`/api/elastic/agent/${agentId}/chat`, {
             method: 'POST',
-            headers: createAuthHeaders(),
+            headers: createAuthHeaders(true), // Include kbn-xsrf header
             body: JSON.stringify(requestBody),
         });
 
@@ -134,9 +143,19 @@ export async function fetchAgentChat(agentId, message, conversationId = null) {
             throw new Error(`Agent Builder chat failed: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        const jsonData = await response.json();
         console.log('Agent Builder chat successful');
-        return data;
+        
+        // Extract response text from the API response structure
+        // Response structure: { output: "...", conversation_id: "...", raw: { response: { message: "..." } } }
+        const responseText = jsonData.output || jsonData.raw?.response?.message || jsonData.response?.message || jsonData.message || JSON.stringify(jsonData);
+        
+        // Return in format expected by the hook
+        return {
+            output: responseText,
+            conversation_id: jsonData.conversation_id,
+            raw: jsonData,
+        };
     } catch (error) {
         console.error('Agent Builder chat error:', error.message);
         throw error;

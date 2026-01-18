@@ -60,10 +60,10 @@ export function useAgentBuilder(agentId) {
                         conversationIdRef.current = response.conversation_id;
                     }
 
-                    // Extract agent response
+                    // Extract agent response (response.output is set by fetchAgentChat)
                     const agentMessage = {
                         role: 'assistant',
-                        content: response.message || response.response || JSON.stringify(response),
+                        content: response.output || response.message || response.response || JSON.stringify(response),
                         timestamp: new Date().toISOString(),
                     };
 

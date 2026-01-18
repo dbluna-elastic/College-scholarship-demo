@@ -19,7 +19,19 @@ function ChatWidget({ floating = true, onClose }) {
     const inputRef = useRef(null);
 
     // Get agent ID from template or environment
-    const agentId = template?.elastic?.agentId || getEnvVar('ELASTIC_AGENT_ID', '');
+    // Fix common typo: "studentcounsler" -> "studentcounselor"
+    let agentId = template?.elastic?.agentId || getEnvVar('ELASTIC_AGENT_ID', '');
+    
+    // Correct the typo if present, or use default if empty
+    if (agentId === 'studentcounsler') {
+        agentId = 'studentcounselor';
+        console.warn('Fixed agent ID typo: studentcounsler -> studentcounselor');
+    }
+    
+    // Use default if still empty
+    if (!agentId) {
+        agentId = 'studentcounselor';
+    }
 
     const {
         messages,
