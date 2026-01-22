@@ -24,6 +24,7 @@ function App() {
     const [activeSection, setActiveSection] = useState('home'); // 'home', 'search', 'analytics', 'student-dashboard', 'counselor-dashboard'
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [userRole, setUserRole] = useState(null); // 'student' | 'counselor' | null
+    const [campusId, setCampusId] = useState(null); // Store campus ID from login
 
     useEffect(() => {
         console.log('⚛️ React App mounted with template:', template?.name);
@@ -52,6 +53,7 @@ function App() {
         
         if (password === 'test') {
             setUserRole('student');
+            setCampusId(campusId || 'student');
             setActiveSection('student-dashboard');
             setShowLoginModal(false);
             
@@ -71,6 +73,7 @@ function App() {
             }
         } else if (password === 'staff') {
             setUserRole('counselor');
+            setCampusId(campusId || 'counselor');
             setActiveSection('counselor-dashboard');
             setShowLoginModal(false);
             
@@ -103,6 +106,7 @@ function App() {
         }
         
         setUserRole(null);
+        setCampusId(null);
         setActiveSection('home');
     };
 
@@ -138,7 +142,7 @@ function App() {
 
     // Render different sections based on activeSection
     if (activeSection === 'student-dashboard') {
-        return <StudentDashboard onLogout={handleLogout} />;
+        return <StudentDashboard onLogout={handleLogout} campusId={campusId} />;
     }
 
     if (activeSection === 'counselor-dashboard') {

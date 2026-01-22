@@ -42,7 +42,7 @@ export function initTracing() {
             console.warn('Tracing: Could not get template, using default service name:', templateError);
         }
 
-        // Initialize Elastic APM RUM with enhanced RUM features
+        // Initialize Elastic APM RUM with supported configuration options
         apm = initApm({
             // APM Server configuration
             serverUrl: apmServerUrl,
@@ -50,8 +50,7 @@ export function initTracing() {
             serviceVersion: '1.0.0',
             environment: 'production',
             
-            // Authentication
-            ...(apiKey && { apiKey }),
+            // Authentication - use secretToken (apiKey is not a valid option in v5.17.0)
             ...(secretToken && { secretToken }),
             
             // Performance monitoring
@@ -62,25 +61,11 @@ export function initTracing() {
             instrument: true, // Auto-instrument fetch, XHR, etc.
             disableInstrumentations: [], // Don't disable any auto-instrumentation
             
-            // RUM-specific features
-            pageLoadTraceId: 'page-load', // Track page loads
-            pageLoadSpanId: 'page-load',
-            pageLoadTransactionName: 'Page Load',
-            
-            // Long task tracking (for performance monitoring)
-            longtask: {
-                enabled: true,
-                threshold: 50, // Track tasks longer than 50ms
-            },
-            
             // Distributed tracing
             distributedTracingOrigins: [
                 window.location.origin, // Allow tracing to same origin
                 // Add other origins if needed for CORS
             ],
-            
-            // Session tracking
-            sessionTrace: true, // Track user sessions
         });
 
         console.log('✅ Elastic APM RUM initialized:', {
