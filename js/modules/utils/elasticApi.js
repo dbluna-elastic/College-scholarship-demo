@@ -206,21 +206,94 @@ export async function fetchElasticsearchSearch(index, queryBody) {
 
         if (!response.ok) {
             const errorText = await response.text();
+            const isIndexNotFound = response.status === 404;
+            
             console.error('Elasticsearch search failed:', {
                 status: response.status,
                 statusText: response.statusText,
+                index,
+                isIndexNotFound,
                 error: errorText.substring(0, 200),
             });
-            throw new Error(`Elasticsearch search failed: ${response.status} ${response.statusText}`);
+            
+            // Create error with status code for better handling
+            const error = new Error(`Elasticsearch search failed: ${response.status} ${response.statusText}`);
+            error.status = response.status;
+            error.isIndexNotFound = isIndexNotFound;
+            error.index = index;
+            throw error;
         }
 
         const data = await response.json();
         console.log('Elasticsearch search successful:', {
+            index,
             hits: data.hits?.total?.value || data.hits?.total || 0,
         });
         return data;
     } catch (error) {
-        console.error('Elasticsearch search error:', error.message);
+        // Preserve error properties if already set
+        if (error.status === undefined) {
+            error.status = error.status || 500;
+            error.isIndexNotFound = false;
+            error.index = index;
+        }
+        console.error('Elasticsearch search error:', {
+            index,
+            message: error.message,
+            status: error.status,
+            isIndexNotFound: error.isIndexNotFound,
+        });
+        throw error;
+    }
+}
+
+/**
+ * Updates a document in Elasticsearch via the proxy
+ * 
+ * @param {string} index - Elasticsearch index name
+ * @param {string} documentId - Document ID to update
+ * @param {Object} updateData - Data to update (will be wrapped in 'doc' for partial update)
+ * @returns {Promise<Object>} Update result
+ */
+export async function fetchElasticsearchUpdate(index, documentId, updateData) {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        throw new Error('ELASTIC_API_KEY is required for Elasticsearch updates');
+    }
+
+    const maskedKey = maskValue(apiKey);
+    console.log('Executing Elasticsearch update:', {
+        index,
+        documentId: maskValue(documentId, 8),
+        fieldsCount: Object.keys(updateData).length,
+        apiKey: maskedKey,
+    });
+
+    try {
+        // Endpoint: /{index}/_update/{id} (nginx will rewrite /api/elastic/es/{index}/_update/{id} to /{index}/_update/{id})
+        const response = await tracedFetch(`/api/elastic/es/${index}/_update/${documentId}`, {
+            method: 'POST',
+            headers: createAuthHeaders(),
+            body: JSON.stringify({
+                doc: updateData,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Elasticsearch update failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorText.substring(0, 200),
+            });
+            throw new Error(`Elasticsearch update failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Elasticsearch update successful');
+        return data;
+    } catch (error) {
+        console.error('Elasticsearch update error:', error.message);
         throw error;
     }
 }

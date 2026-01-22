@@ -7,7 +7,8 @@
 import { useContext, useState, useEffect } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import ChatWidget from './ChatWidget.jsx';
-import { getStudentData, searchScholarshipsWithTemplate } from '../../modules/utils/esqlQueries.js';
+import StudentEditModal from './StudentEditModal.jsx';
+import { getStudentData, searchScholarshipsWithTemplate, updateStudentData } from '../../modules/utils/esqlQueries.js';
 
 function StudentDashboard({ onLogout, campusId }) {
     const template = useContext(TemplateContext);
@@ -21,6 +22,11 @@ function StudentDashboard({ onLogout, campusId }) {
     const [isLoadingStudent, setIsLoadingStudent] = useState(true);
     const [isLoadingScholarships, setIsLoadingScholarships] = useState(true);
     const [error, setError] = useState(null);
+    
+    // State for edit modal
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [studentIndex, setStudentIndex] = useState(null);
+    const [studentDocumentId, setStudentDocumentId] = useState(null);
 
     // Mock data for Net Price Estimate
     const netPriceData = {
@@ -77,6 +83,9 @@ function StudentDashboard({ onLogout, campusId }) {
                 const studentResult = await getStudentData(campusId);
                 if (studentResult.found && studentResult.student) {
                     setStudentProfile(studentResult.student);
+                    // Store index and document ID for updates
+                    setStudentIndex(studentResult.index);
+                    setStudentDocumentId(studentResult.documentId);
                     
                     // Extract major/field of study for scholarship search
                     const major = studentResult.student.major || 
@@ -100,7 +109,13 @@ function StudentDashboard({ onLogout, campusId }) {
                         setIsLoadingScholarships(false);
                     }
                 } else {
-                    // Student not found, try default search
+                    // Student not found - this is not an error, just no data available yet
+                    console.log('Student data not found in Elasticsearch. Dashboard will show with default data.');
+                    setStudentProfile(null);
+                    setStudentIndex(null);
+                    setStudentDocumentId(null);
+                    
+                    // Still try to show some scholarships with default search
                     setIsLoadingScholarships(true);
                     try {
                         const scholarshipResult = await searchScholarshipsWithTemplate(
@@ -116,6 +131,7 @@ function StudentDashboard({ onLogout, campusId }) {
                     }
                 }
             } catch (err) {
+                // Only set error for non-404 issues (auth, network, etc.)
                 console.error('Student data fetch error:', err);
                 setError(err.message || 'Failed to load student data');
                 setIsLoadingScholarships(false);
@@ -234,7 +250,11 @@ function StudentDashboard({ onLogout, campusId }) {
                     <div className="mb-8">
                         <div className="flex items-center gap-3 mb-4">
                             <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
-                            <button className="p-1 hover:bg-gray-200 rounded transition-colors">
+                            <button 
+                                onClick={() => setShowEditModal(true)}
+                                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                title="Edit student information"
+                            >
                                 <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
@@ -249,6 +269,24 @@ function StudentDashboard({ onLogout, campusId }) {
                     {error && (
                         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
                             <strong>Error:</strong> {error}
+                        </div>
+                    )}
+
+                    {/* Student Not Found Message */}
+                    {!error && !isLoadingStudent && !studentProfile && (
+                        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
+                            <div className="flex items-start gap-3">
+                                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <strong>Student Profile Not Found</strong>
+                                    <p className="text-sm mt-1">
+                                        Your student profile is not yet available in the system. The dashboard below shows estimated costs and general scholarship opportunities. 
+                                        Once your profile is added, personalized scholarship matches will appear here.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -546,6 +584,35 @@ function StudentDashboard({ onLogout, campusId }) {
 
             {/* Chat Widget - Floating */}
             <ChatWidget floating={true} />
+
+            {/* Student Edit Modal */}
+            <StudentEditModal
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                studentProfile={studentProfile}
+                studentId={campusId}
+                onSave={async (studentId, updateData) => {
+                    try {
+                        await updateStudentData(
+                            studentId,
+                            updateData,
+                            studentIndex || 'students',
+                            studentDocumentId
+                        );
+                        
+                        // Refresh student data after successful save
+                        const studentResult = await getStudentData(campusId);
+                        if (studentResult.found && studentResult.student) {
+                            setStudentProfile(studentResult.student);
+                            setStudentIndex(studentResult.index);
+                            setStudentDocumentId(studentResult.documentId);
+                        }
+                    } catch (error) {
+                        console.error('Failed to save student data:', error);
+                        throw error;
+                    }
+                }}
+            />
         </div>
     );
 }

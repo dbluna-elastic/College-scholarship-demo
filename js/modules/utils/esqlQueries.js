@@ -9,7 +9,7 @@
  * All queries are template-aware (can filter by state if template has stateName)
  */
 
-import { fetchElasticsearchSearch } from './elasticApi.js';
+import { fetchElasticsearchSearch, fetchElasticsearchUpdate } from './elasticApi.js';
 
 /**
  * Search scholarships by major/keyword using RRF (Reciprocal Rank Fusion)
@@ -127,12 +127,13 @@ export async function searchScholarships(criteria = {}) {
 
 /**
  * Get student/application data
+ * Tries 'students' index first, then falls back to 'student_applications'
  * 
  * @param {string} studentId - Student ID
- * @param {string} index - Elasticsearch index (default: 'student_applications')
- * @returns {Promise<Object>} Student data
+ * @param {string} preferredIndex - Preferred index to try first (default: 'students')
+ * @returns {Promise<Object>} Student data with index information
  */
-export async function getStudentData(studentId, index = 'student_applications') {
+export async function getStudentData(studentId, preferredIndex = 'students') {
     if (!studentId) {
         throw new Error('Student ID is required');
     }
@@ -146,15 +147,69 @@ export async function getStudentData(studentId, index = 'student_applications') 
         size: 1,
     };
 
+    // Try preferred index first (usually 'students')
     try {
-        const result = await fetchElasticsearchSearch(index, queryBody);
+        console.log(`Attempting to fetch student data from index '${preferredIndex}'`);
+        const result = await fetchElasticsearchSearch(preferredIndex, queryBody);
         const hits = result.hits?.hits || [];
+        if (hits.length > 0) {
+            console.log(`Student found in index '${preferredIndex}'`);
+            return {
+                student: hits[0]?._source || null,
+                found: true,
+                index: preferredIndex,
+                documentId: hits[0]?._id || null,
+            };
+        }
+        // No hits found, try fallback
+        console.log(`No student found in index '${preferredIndex}', trying fallback`);
+    } catch (error) {
+        // Check if it's a 404 (index not found) or other error
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn(`Index '${preferredIndex}' not found (404), trying fallback index`);
+        } else {
+            // For non-404 errors, log but still try fallback
+            console.warn(`Student data query failed for index '${preferredIndex}':`, error.message);
+        }
+    }
+
+    // Fallback to 'student_applications' index
+    const fallbackIndex = 'student_applications';
+    try {
+        console.log(`Attempting to fetch student data from fallback index '${fallbackIndex}'`);
+        const result = await fetchElasticsearchSearch(fallbackIndex, queryBody);
+        const hits = result.hits?.hits || [];
+        if (hits.length > 0) {
+            console.log(`Student found in fallback index '${fallbackIndex}'`);
+            return {
+                student: hits[0]?._source || null,
+                found: true,
+                index: fallbackIndex,
+                documentId: hits[0]?._id || null,
+            };
+        }
+        // No hits found in fallback either
+        console.log(`No student found in fallback index '${fallbackIndex}'`);
         return {
-            student: hits[0]?._source || null,
-            found: hits.length > 0,
+            student: null,
+            found: false,
+            index: null,
+            documentId: null,
         };
     } catch (error) {
-        console.error('Student data query error:', error);
+        // Check if it's a 404 (index not found)
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn(`Fallback index '${fallbackIndex}' not found (404). Student data not available.`);
+            // Return not found instead of throwing
+            return {
+                student: null,
+                found: false,
+                index: null,
+                documentId: null,
+            };
+        }
+        // For non-404 errors (auth, network, etc.), throw the error
+        console.error('Student data query error (non-404):', error);
         throw error;
     }
 }
@@ -270,4 +325,56 @@ export async function searchScholarshipsWithTemplate(template, criteria = {}) {
     }
 
     return searchScholarships(templateCriteria);
+}
+
+/**
+ * Update student data in Elasticsearch
+ * 
+ * @param {string} studentId - Student ID
+ * @param {Object} updateData - Data to update
+ * @param {string} index - Elasticsearch index (default: 'students')
+ * @param {string} documentId - Optional document ID (if not provided, will search for it)
+ * @returns {Promise<Object>} Update result
+ */
+export async function updateStudentData(studentId, updateData, index = 'students', documentId = null) {
+    if (!studentId) {
+        throw new Error('Student ID is required');
+    }
+
+    // If documentId not provided, search for it
+    let docId = documentId;
+    if (!docId) {
+        const studentResult = await getStudentData(studentId, index);
+        if (!studentResult.found || !studentResult.documentId) {
+            throw new Error(`Student not found in index '${index}'`);
+        }
+        docId = studentResult.documentId;
+        // Use the index from the search result
+        index = studentResult.index;
+    }
+
+    try {
+        // Remove null/undefined values from updateData
+        const cleanedData = Object.entries(updateData).reduce((acc, [key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                acc[key] = value;
+            }
+            return acc;
+        }, {});
+
+        if (Object.keys(cleanedData).length === 0) {
+            throw new Error('No valid data to update');
+        }
+
+        const result = await fetchElasticsearchUpdate(index, docId, cleanedData);
+        return {
+            success: true,
+            result,
+            index,
+            documentId: docId,
+        };
+    } catch (error) {
+        console.error('Student data update error:', error);
+        throw error;
+    }
 }
