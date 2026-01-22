@@ -43,18 +43,13 @@ export async function tracedFetch(url, options = {}) {
             'http.status_text': response.statusText,
         });
 
-        // Set outcome
-        if (!response.ok) {
-            transaction.setOutcome('failure');
-        } else {
-            transaction.setOutcome('success');
-        }
+        // Note: Transaction outcome is automatically determined by APM based on
+        // HTTP status codes and errors captured via apm.captureError()
 
         return response;
     } catch (error) {
-        // Capture error
+        // Capture error (APM will automatically mark transaction as failure)
         apm.captureError(error);
-        transaction.setOutcome('failure');
         throw error;
     } finally {
         // End transaction
