@@ -13,6 +13,7 @@
 import { defaultTemplate } from './templates/default.js';
 import { texasTemplate } from './templates/texas.js';
 import { oklahomaTemplate } from './templates/oklahoma.js';
+import { beauregardTemplate } from './templates/beauregard.js';
 import { getEnvVar } from '../modules/utils/getEnvVar.js';
 
 // Template registry
@@ -20,6 +21,7 @@ const templates = {
     default: defaultTemplate,
     texas: texasTemplate,
     oklahoma: oklahomaTemplate,
+    beauregard: beauregardTemplate,
 };
 
 /**

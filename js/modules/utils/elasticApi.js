@@ -77,19 +77,47 @@ export async function fetchESQLQuery(query, params = {}) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('ESQL query failed:', {
+            const isIndexNotFound = response.status === 404;
+            
+            // Try to parse error as JSON for better formatting
+            let errorDetails = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorDetails = JSON.stringify(errorJson, null, 2);
+            } catch (e) {
+                // Keep as text if not JSON
+            }
+            
+            console.error('ESQL query failed - Full error:', {
                 status: response.status,
                 statusText: response.statusText,
-                error: errorText.substring(0, 200),
+                isIndexNotFound,
+                query: query.substring(0, 200), // Log the query that failed
+                error: errorDetails,
             });
-            throw new Error(`ESQL query failed: ${response.status} ${response.statusText}`);
+            
+            // Create error with status code for better handling
+            const error = new Error(`ESQL query failed: ${response.status} ${response.statusText}`);
+            error.status = response.status;
+            error.isIndexNotFound = isIndexNotFound;
+            error.errorDetails = errorDetails; // Attach full error details
+            throw error;
         }
 
         const data = await response.json();
         console.log('ESQL query successful:', { resultCount: data.values?.length || 0 });
         return data;
     } catch (error) {
-        console.error('ESQL query error:', error.message);
+        // Preserve error properties if already set
+        if (error.status === undefined) {
+            error.status = error.status || 500;
+            error.isIndexNotFound = false;
+        }
+        console.error('ESQL query error:', {
+            message: error.message,
+            status: error.status,
+            isIndexNotFound: error.isIndexNotFound,
+        });
         throw error;
     }
 }

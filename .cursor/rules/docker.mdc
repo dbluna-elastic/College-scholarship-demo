@@ -16,3 +16,13 @@ globs: Dockerfile, docker-compose.yml, nginx.conf
 
 ## Proxy Sync
 - If a new proxy route is added to `vite.config.js`, the AI MUST remind the user to update `nginx.conf` to match, or the production build will fail.
+
+## Container Rebuild & Restart
+- **ALWAYS** rebuild and restart the Docker container after making any code changes, configuration updates, or template modifications.
+- After any changes, run:
+  ```bash
+  docker-compose down
+  docker-compose build
+  docker-compose up -d
+  ```
+- This ensures all changes are properly applied and the container is running with the latest code.

@@ -9,7 +9,7 @@
  * All queries are template-aware (can filter by state if template has stateName)
  */
 
-import { fetchElasticsearchSearch, fetchElasticsearchUpdate } from './elasticApi.js';
+import { fetchElasticsearchSearch, fetchElasticsearchUpdate, fetchESQLQuery } from './elasticApi.js';
 
 /**
  * Search scholarships by major/keyword using RRF (Reciprocal Rank Fusion)
@@ -126,70 +126,72 @@ export async function searchScholarships(criteria = {}) {
 }
 
 /**
- * Get student/application data
- * Tries 'students' index first, then falls back to 'student_applications'
+ * Get student/application data using ESQL queries
+ * Searches the 'students' index by full name
  * 
- * @param {string} studentId - Student ID
- * @param {string} preferredIndex - Preferred index to try first (default: 'students')
+ * @param {string} studentId - Student full name (searches by full_name field)
+ * @param {string} preferredIndex - Index to search (default: 'students')
  * @returns {Promise<Object>} Student data with index information
  */
 export async function getStudentData(studentId, preferredIndex = 'students') {
     if (!studentId) {
-        throw new Error('Student ID is required');
+        throw new Error('Student name is required');
     }
 
-    const queryBody = {
-        query: {
-            term: {
-                student_id: studentId,
-            },
-        },
-        size: 1,
+    // Escape quotes in studentId to prevent ESQL injection
+    const escapedStudentId = studentId.replace(/"/g, '\\"');
+
+    // Build ESQL query
+    // ESQL uses == for equality comparison (not =)
+    // Uses full_name field to search by name
+    const buildESQLQuery = (index) => {
+        if (!index || index.trim() === '') {
+            throw new Error('Index name is required for ESQL query');
+        }
+        return `FROM ${index} | WHERE full_name == "${escapedStudentId}" | LIMIT 1`;
     };
 
-    // Try preferred index first (usually 'students')
-    try {
-        console.log(`Attempting to fetch student data from index '${preferredIndex}'`);
-        const result = await fetchElasticsearchSearch(preferredIndex, queryBody);
-        const hits = result.hits?.hits || [];
-        if (hits.length > 0) {
-            console.log(`Student found in index '${preferredIndex}'`);
-            return {
-                student: hits[0]?._source || null,
-                found: true,
-                index: preferredIndex,
-                documentId: hits[0]?._id || null,
-            };
+    // Helper function to map ESQL response to student object
+    const mapESQLResponse = (result, index) => {
+        if (!result.columns || !result.values || result.values.length === 0) {
+            return null;
         }
-        // No hits found, try fallback
-        console.log(`No student found in index '${preferredIndex}', trying fallback`);
-    } catch (error) {
-        // Check if it's a 404 (index not found) or other error
-        if (error.isIndexNotFound || error.status === 404) {
-            console.warn(`Index '${preferredIndex}' not found (404), trying fallback index`);
-        } else {
-            // For non-404 errors, log but still try fallback
-            console.warn(`Student data query failed for index '${preferredIndex}':`, error.message);
-        }
-    }
 
-    // Fallback to 'student_applications' index
-    const fallbackIndex = 'student_applications';
+        const row = result.values[0];
+        const student = {};
+        let documentId = null;
+
+        // Map columns to student object
+        result.columns.forEach((col, index) => {
+            const value = row[index];
+            if (col.name === '_id') {
+                documentId = value;
+            } else {
+                student[col.name] = value;
+            }
+        });
+
+        return {
+            student,
+            found: true,
+            index,
+            documentId,
+        };
+    };
+
+    // Query the students index
     try {
-        console.log(`Attempting to fetch student data from fallback index '${fallbackIndex}'`);
-        const result = await fetchElasticsearchSearch(fallbackIndex, queryBody);
-        const hits = result.hits?.hits || [];
-        if (hits.length > 0) {
-            console.log(`Student found in fallback index '${fallbackIndex}'`);
-            return {
-                student: hits[0]?._source || null,
-                found: true,
-                index: fallbackIndex,
-                documentId: hits[0]?._id || null,
-            };
+        console.log(`Attempting to fetch student data from index '${preferredIndex}' using ESQL`);
+        const esqlQuery = buildESQLQuery(preferredIndex);
+        const result = await fetchESQLQuery(esqlQuery);
+        
+        const mapped = mapESQLResponse(result, preferredIndex);
+        if (mapped) {
+            console.log(`Student found in index '${preferredIndex}'`);
+            return mapped;
         }
-        // No hits found in fallback either
-        console.log(`No student found in fallback index '${fallbackIndex}'`);
+        // No results found
+        console.log(`No student found in index '${preferredIndex}'`);
         return {
             student: null,
             found: false,
@@ -199,7 +201,7 @@ export async function getStudentData(studentId, preferredIndex = 'students') {
     } catch (error) {
         // Check if it's a 404 (index not found)
         if (error.isIndexNotFound || error.status === 404) {
-            console.warn(`Fallback index '${fallbackIndex}' not found (404). Student data not available.`);
+            console.warn(`Index '${preferredIndex}' not found (404). Student data not available.`);
             // Return not found instead of throwing
             return {
                 student: null,
@@ -328,9 +330,40 @@ export async function searchScholarshipsWithTemplate(template, criteria = {}) {
 }
 
 /**
+ * Get document ID by searching with standard Elasticsearch query
+ * Used when ESQL doesn't return _id
+ * 
+ * @param {string} studentName - Student full name
+ * @param {string} index - Elasticsearch index (default: 'students')
+ * @returns {Promise<string|null>} Document ID or null if not found
+ */
+async function getDocumentIdByName(studentName, index = 'students') {
+    try {
+        const queryBody = {
+            query: {
+                term: {
+                    full_name: studentName
+                }
+            },
+            size: 1
+        };
+        
+        const result = await fetchElasticsearchSearch(index, queryBody);
+        const hits = result.hits?.hits || [];
+        if (hits.length > 0) {
+            return hits[0]._id;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting document ID:', error);
+        return null;
+    }
+}
+
+/**
  * Update student data in Elasticsearch
  * 
- * @param {string} studentId - Student ID
+ * @param {string} studentId - Student full name
  * @param {Object} updateData - Data to update
  * @param {string} index - Elasticsearch index (default: 'students')
  * @param {string} documentId - Optional document ID (if not provided, will search for it)
@@ -338,19 +371,16 @@ export async function searchScholarshipsWithTemplate(template, criteria = {}) {
  */
 export async function updateStudentData(studentId, updateData, index = 'students', documentId = null) {
     if (!studentId) {
-        throw new Error('Student ID is required');
+        throw new Error('Student name is required');
     }
 
-    // If documentId not provided, search for it
+    // If documentId not provided, search for it using standard search (to get _id)
     let docId = documentId;
     if (!docId) {
-        const studentResult = await getStudentData(studentId, index);
-        if (!studentResult.found || !studentResult.documentId) {
+        docId = await getDocumentIdByName(studentId, index);
+        if (!docId) {
             throw new Error(`Student not found in index '${index}'`);
         }
-        docId = studentResult.documentId;
-        // Use the index from the search result
-        index = studentResult.index;
     }
 
     try {

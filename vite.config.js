@@ -7,7 +7,7 @@ export default defineConfig({
         proxy: {
             // Proxy for Elasticsearch direct searches (ES endpoint)
             '/api/elastic/es': {
-                target: 'https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud',
+                target: 'https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud:443',
                 changeOrigin: true,
                 rewrite: (path) => {
                     // Remove /api/elastic/es prefix

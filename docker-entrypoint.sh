@@ -57,7 +57,7 @@ fi
 
 # Substitute environment variables in nginx.conf
 # Use default values from vite.config.js if not set
-export ELASTIC_ES_URL=${ELASTIC_ES_URL:-https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud}
+export ELASTIC_ES_URL=${ELASTIC_ES_URL:-https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud:443}
 export ELASTIC_KB_URL=${ELASTIC_KB_URL:-https://apex-dec2025-group4-b01431.kb.us-central1.gcp.elastic.cloud}
 
 # Extract hostnames from URLs for Host header (remove https:// prefix)
@@ -84,7 +84,7 @@ if [ -n "$ELASTIC_AGENT_API_KEY" ] && [ -f "/opt/elastic-agent/elastic-agent" ];
 outputs:
   default:
     type: elasticsearch
-    hosts: ["${ELASTIC_ES_URL:-https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud}"]
+    hosts: ["${ELASTIC_ES_URL:-https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud:443}"]
     api_key: "${ELASTIC_AGENT_API_KEY}"
     ssl.verification_mode: certificate
 
