@@ -102,4 +102,26 @@ export const beauregardTemplate = {
             sortOrder: 'ASC',
         },
     },
+    
+    // News Items - High School focused
+    news: [
+        {
+            category: 'Athletics',
+            title: 'Jackalopes Football Team Wins District Championship',
+            description: 'Our varsity team secured their third consecutive district title with an impressive 42-14 victory last Friday night.',
+            image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
+        },
+        {
+            category: 'Academics',
+            title: 'Science Fair Showcases Student Innovation',
+            description: 'Over 50 students presented projects at our annual science fair, with three advancing to the regional competition.',
+            image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&q=80',
+        },
+        {
+            category: 'Student Life',
+            title: 'Homecoming Week Celebrations Begin',
+            description: 'Spirit week kicks off with themed dress-up days, pep rally, and the annual homecoming dance this Saturday.',
+            image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80',
+        },
+    ],
 };

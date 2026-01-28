@@ -98,9 +98,10 @@ function StudentDashboard({ onLogout, campusId }) {
                     try {
                         const scholarshipResult = await searchScholarshipsWithTemplate(
                             template,
-                            { keyword: major, size: 10 }
+                            { keyword: major, size: 5 }
                         );
-                        setMatchedScholarships(scholarshipResult.scholarships || []);
+                        // Limit to top 5 scholarships
+                        setMatchedScholarships((scholarshipResult.scholarships || []).slice(0, 5));
                     } catch (scholarshipError) {
                         console.error('Scholarship search error:', scholarshipError);
                         // Continue even if scholarship search fails
@@ -120,9 +121,10 @@ function StudentDashboard({ onLogout, campusId }) {
                     try {
                         const scholarshipResult = await searchScholarshipsWithTemplate(
                             template,
-                            { keyword: 'general', size: 10 }
+                            { keyword: 'general', size: 5 }
                         );
-                        setMatchedScholarships(scholarshipResult.scholarships || []);
+                        // Limit to top 5 scholarships
+                        setMatchedScholarships((scholarshipResult.scholarships || []).slice(0, 5));
                     } catch (scholarshipError) {
                         console.error('Scholarship search error:', scholarshipError);
                         setMatchedScholarships([]);
@@ -142,6 +144,36 @@ function StudentDashboard({ onLogout, campusId }) {
 
         fetchStudentData();
     }, [campusId, template]);
+
+    // Function to refresh matched scholarships based on student profile
+    const refreshMatchedScholarships = async (profile = null) => {
+        const profileToUse = profile || studentProfile;
+        if (!profileToUse || !campusId) {
+            return;
+        }
+
+        try {
+            setIsLoadingScholarships(true);
+            
+            // Extract major/field of study for scholarship search
+            const major = profileToUse.major || 
+                          profileToUse.field_of_study || 
+                          profileToUse.program || 
+                          'general';
+            
+            const scholarshipResult = await searchScholarshipsWithTemplate(
+                template,
+                { keyword: major, size: 5 }
+            );
+            // Limit to top 5 scholarships
+            setMatchedScholarships((scholarshipResult.scholarships || []).slice(0, 5));
+        } catch (scholarshipError) {
+            console.error('Scholarship search error:', scholarshipError);
+            setMatchedScholarships([]);
+        } finally {
+            setIsLoadingScholarships(false);
+        }
+    };
 
     if (!template) {
         return (
@@ -603,9 +635,13 @@ function StudentDashboard({ onLogout, campusId }) {
                         // Refresh student data after successful save
                         const studentResult = await getStudentData(campusId);
                         if (studentResult.found && studentResult.student) {
-                            setStudentProfile(studentResult.student);
+                            const updatedProfile = studentResult.student;
+                            setStudentProfile(updatedProfile);
                             setStudentIndex(studentResult.index);
                             setStudentDocumentId(studentResult.documentId);
+                            
+                            // Refresh matched scholarships with updated profile
+                            await refreshMatchedScholarships(updatedProfile);
                         }
                     } catch (error) {
                         console.error('Failed to save student data:', error);

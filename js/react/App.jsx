@@ -118,8 +118,8 @@ function App() {
         );
     }
 
-    // Placeholder news items
-    const newsItems = [
+    // News items - use template-specific news if available, otherwise use defaults
+    const newsItems = template.news || [
         {
             category: 'Groundbreaking Research',
             title: 'University Scientists Make Breakthrough Discovery',
