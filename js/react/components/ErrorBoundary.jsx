@@ -19,39 +19,44 @@ class ErrorBoundary extends Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        // Log error to Elastic APM
-        const apm = getApm();
-        if (apm) {
-            try {
-                // Capture the error with context
-                apm.captureError(error, {
-                    tags: {
-                        errorBoundary: true,
-                        componentStack: errorInfo.componentStack,
-                    },
-                    custom: {
-                        componentStack: errorInfo.componentStack,
-                        errorInfo: errorInfo,
-                    },
-                });
-                
-                // Add labels for better filtering
-                apm.addLabels({
-                    'error.type': 'react_error_boundary',
-                    'error.component': errorInfo.componentStack?.split('\n')[0] || 'unknown',
-                });
-            } catch (apmError) {
-                console.error('Failed to report error to APM:', apmError);
+        try {
+            const apm = getApm();
+            if (apm) {
+                try {
+                    if (typeof apm.captureError === 'function') {
+                        apm.captureError(error, {
+                            tags: {
+                                errorBoundary: true,
+                                componentStack: errorInfo.componentStack,
+                            },
+                            custom: {
+                                componentStack: errorInfo.componentStack,
+                                errorInfo: errorInfo,
+                            },
+                        });
+                    }
+                    if (typeof apm.addLabels === 'function') {
+                        apm.addLabels({
+                            'error.type': 'react_error_boundary',
+                            'error.component': errorInfo.componentStack?.split('\n')[0] || 'unknown',
+                        });
+                    }
+                } catch (apmError) {
+                    console.error('Failed to report error to APM:', apmError);
+                }
             }
+        } catch (tracingError) {
+            console.error('Error in error boundary (tracing):', tracingError);
         }
-        
-        // Also log to console
         console.error('Error caught by boundary:', error, errorInfo);
     }
 
     render() {
         if (this.state.hasError) {
-            // You can render any custom fallback UI
+            const showErrorDetail = typeof import.meta !== 'undefined' && import.meta.env?.DEV === true
+                || (typeof window !== 'undefined' && window.location.search.includes('showError=1'));
+            const error = this.state.error;
+
             return this.props.fallback || (
                 <div className="min-h-screen flex items-center justify-center bg-gray-50">
                     <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
@@ -62,8 +67,15 @@ class ErrorBoundary extends Component {
                             <h2 className="text-2xl font-bold text-gray-900">Something went wrong</h2>
                         </div>
                         <p className="text-gray-600 mb-4">
-                            We're sorry, but something unexpected happened. The error has been reported and we're working on fixing it.
+                            {showErrorDetail && error
+                                ? error.message || String(error)
+                                : "We're sorry, but something unexpected happened. The error has been reported and we're working on fixing it."}
                         </p>
+                        {showErrorDetail && error?.stack && (
+                            <pre className="text-left text-xs text-gray-500 mb-4 p-3 bg-gray-100 rounded overflow-auto max-h-32">
+                                {error.stack}
+                            </pre>
+                        )}
                         <button
                             onClick={() => {
                                 this.setState({ hasError: false, error: null });

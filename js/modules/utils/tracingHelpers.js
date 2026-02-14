@@ -25,35 +25,32 @@ export async function tracedFetch(url, options = {}) {
     const method = options.method || 'GET';
     const transactionName = `${method} ${new URL(url, window.location.origin).pathname}`;
     
-    // Start a custom transaction for this fetch call
-    const transaction = apm.startTransaction(transactionName, 'request');
-    
-    // Add labels/context
-    transaction.addLabels({
-        'http.method': method,
-        'http.url': url,
-    });
+    const transaction = apm.startTransaction?.(transactionName, 'request');
+    if (transaction && typeof transaction.addLabels === 'function') {
+        transaction.addLabels({
+            'http.method': method,
+            'http.url': url,
+        });
+    }
 
     try {
         const response = await fetch(url, options);
-        
-        // Add response labels
-        transaction.addLabels({
-            'http.status_code': response.status,
-            'http.status_text': response.statusText,
-        });
-
-        // Note: Transaction outcome is automatically determined by APM based on
-        // HTTP status codes and errors captured via apm.captureError()
-
+        if (transaction && typeof transaction.addLabels === 'function') {
+            transaction.addLabels({
+                'http.status_code': response.status,
+                'http.status_text': response.statusText,
+            });
+        }
         return response;
     } catch (error) {
-        // Capture error (APM will automatically mark transaction as failure)
-        apm.captureError(error);
+        if (typeof apm.captureError === 'function') {
+            apm.captureError(error);
+        }
         throw error;
     } finally {
-        // End transaction
-        transaction.end();
+        if (transaction && typeof transaction.end === 'function') {
+            transaction.end();
+        }
     }
 }
 
@@ -75,13 +72,18 @@ export function startInteractionSpan(action, labels = {}) {
         };
     }
     
-    const transaction = apm.startTransaction(action, 'user-interaction');
-    transaction.addLabels({
-        'user.interaction': true,
-        ...labels,
-    });
-    
-    return transaction;
+    const transaction = apm.startTransaction?.(action, 'user-interaction');
+    if (transaction && typeof transaction.addLabels === 'function') {
+        transaction.addLabels({
+            'user.interaction': true,
+            ...labels,
+        });
+    }
+    return transaction || {
+        addLabels: () => {},
+        setOutcome: () => {},
+        end: () => {},
+    };
 }
 
 /**
@@ -98,20 +100,25 @@ export function trackCustomMetric(name, value, labels = {}) {
     }
     
     try {
-        // Add custom labels for the metric
-        apm.addLabels({
-            [`metric.${name}`]: value,
-            ...labels,
-        });
-        
-        // Also track as a custom transaction for visibility
-        const transaction = apm.startTransaction(`Metric: ${name}`, 'custom');
-        transaction.addLabels({
-            'metric.name': name,
-            'metric.value': value,
-            ...labels,
-        });
-        transaction.end();
+        if (typeof apm.addLabels === 'function') {
+            apm.addLabels({
+                [`metric.${name}`]: value,
+                ...labels,
+            });
+        }
+        const transaction = apm.startTransaction?.(`Metric: ${name}`, 'custom');
+        if (transaction) {
+            if (typeof transaction.addLabels === 'function') {
+                transaction.addLabels({
+                    'metric.name': name,
+                    'metric.value': value,
+                    ...labels,
+                });
+            }
+            if (typeof transaction.end === 'function') {
+                transaction.end();
+            }
+        }
     } catch (error) {
         console.error('Failed to track custom metric:', error);
     }
@@ -130,18 +137,18 @@ export function trackPageView(pageName, metadata = {}) {
     }
     
     try {
-        const transaction = apm.startTransaction(`Page: ${pageName}`, 'page-load');
-        transaction.addLabels({
-            'page.name': pageName,
-            'page.url': window.location.href,
-            'page.path': window.location.pathname,
-            ...metadata,
-        });
-        
-        // End transaction after page load metrics are captured
-        setTimeout(() => {
-            transaction.end();
-        }, 100);
+        const transaction = apm.startTransaction?.(`Page: ${pageName}`, 'page-load');
+        if (transaction && typeof transaction.addLabels === 'function') {
+            transaction.addLabels({
+                'page.name': pageName,
+                'page.url': window.location.href,
+                'page.path': window.location.pathname,
+                ...metadata,
+            });
+        }
+        if (transaction && typeof transaction.end === 'function') {
+            setTimeout(() => transaction.end(), 100);
+        }
     } catch (error) {
         console.error('Failed to track page view:', error);
     }
@@ -161,23 +168,27 @@ export function trackUserAction(actionName, element, metadata = {}) {
     }
     
     try {
-        apm.addLabels({
-            'user.action': actionName,
-            'user.action.element': element,
-            'user.action.timestamp': new Date().toISOString(),
-            ...metadata,
-        });
-        
-        // Create a short transaction for the action
-        const transaction = apm.startTransaction(`Action: ${actionName}`, 'user-action');
-        transaction.addLabels({
-            'action.name': actionName,
-            'action.element': element,
-            ...metadata,
-        });
-        
-        // End immediately (it's a quick action)
-        transaction.end();
+        if (typeof apm.addLabels === 'function') {
+            apm.addLabels({
+                'user.action': actionName,
+                'user.action.element': element,
+                'user.action.timestamp': new Date().toISOString(),
+                ...metadata,
+            });
+        }
+        const transaction = apm.startTransaction?.(`Action: ${actionName}`, 'user-action');
+        if (transaction) {
+            if (typeof transaction.addLabels === 'function') {
+                transaction.addLabels({
+                    'action.name': actionName,
+                    'action.element': element,
+                    ...metadata,
+                });
+            }
+            if (typeof transaction.end === 'function') {
+                transaction.end();
+            }
+        }
     } catch (error) {
         console.error('Failed to track user action:', error);
     }

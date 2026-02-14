@@ -7,6 +7,7 @@
  */
 
 import { createContext } from 'react';
+import { getCurrentTemplate } from '../../config/templateEngine.js';
 
 /**
  * Template Context
@@ -20,11 +21,10 @@ export const TemplateContext = createContext(null);
  * Template Provider Component
  * 
  * Wraps the React app and provides template context.
- * The template value comes from window.currentTemplate set by templateEngine.
+ * Uses getCurrentTemplate() so context value is never null (falls back to default template).
  */
 export function TemplateProvider({ children }) {
-    // Get template from global window object (set by templateEngine)
-    const template = window.currentTemplate || null;
+    const template = getCurrentTemplate();
 
     return (
         <TemplateContext.Provider value={template}>

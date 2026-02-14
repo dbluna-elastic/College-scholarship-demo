@@ -7,10 +7,12 @@
 
 import { useContext } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
+import { getSchemaLabels } from '../../config/schemaConfig.js';
 import ChatWidget from './ChatWidget.jsx';
 
 function CounselorDashboard({ onLogout }) {
     const template = useContext(TemplateContext);
+    const schemaLabels = getSchemaLabels(template);
 
     if (!template) {
         return (
@@ -27,7 +29,7 @@ function CounselorDashboard({ onLogout }) {
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex justify-end items-center gap-4">
                         {/* User Info */}
-                        <span className="text-sm">Counselor Dashboard</span>
+                        <span className="text-sm">{schemaLabels.dashboardStaff}</span>
                         
                         {/* Logout Button */}
                         {onLogout && (
@@ -119,10 +121,10 @@ function CounselorDashboard({ onLogout }) {
                         className="text-4xl md:text-5xl font-bold text-center mb-12"
                         style={{
                             fontFamily: 'var(--serif-font)',
-                            color: template.colors.primary,
+                            color: template.colors?.primary || '#5D5FEF',
                         }}
                     >
-                        Counselor Dashboard
+                        {schemaLabels.dashboardStaff}
                     </h2>
                     <p className="text-center text-gray-600">
                         Dashboard content will be added here.

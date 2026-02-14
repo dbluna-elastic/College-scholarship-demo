@@ -78,6 +78,9 @@ export const defaultTemplate = {
         headingTracking: '-0.05em', // tracking-tighter
     },
     
+    // Schema: school (Student/Counselor/GPA) vs agency (Citizen/Case Worker/Status)
+    schema: 'school',
+
     // Elastic Configuration
     elastic: {
         agentId: null,  // Will be set from environment or template-specific config

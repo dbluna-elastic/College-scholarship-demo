@@ -8,10 +8,12 @@ import { useContext, useState, useEffect } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import ChatWidget from './ChatWidget.jsx';
 import StudentEditModal from './StudentEditModal.jsx';
+import { getSchemaLabels } from '../../config/schemaConfig.js';
 import { getStudentData, searchScholarshipsWithTemplate, updateStudentData } from '../../modules/utils/esqlQueries.js';
 
 function StudentDashboard({ onLogout, campusId }) {
     const template = useContext(TemplateContext);
+    const schemaLabels = getSchemaLabels(template);
     
     // State for Net Price Estimate
     const [timePeriod, setTimePeriod] = useState('annual'); // 'total-degree', 'annual', 'monthly'
@@ -183,10 +185,10 @@ function StudentDashboard({ onLogout, campusId }) {
         );
     }
 
-    const studentName = studentProfile?.name || 
-                       studentProfile?.first_name || 
-                       campusId || 
-                       'Student';
+    const studentName = studentProfile?.name ||
+                       studentProfile?.first_name ||
+                       campusId ||
+                       schemaLabels.welcomeNameFallback;
 
     return (
         <div className="w-full min-h-screen bg-white">
@@ -195,7 +197,7 @@ function StudentDashboard({ onLogout, campusId }) {
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex justify-end items-center gap-4">
                         {/* User Info */}
-                        <span className="text-sm">Student Dashboard</span>
+                        <span className="text-sm">{schemaLabels.dashboardPrimary}</span>
                         
                         {/* Logout Button */}
                         {onLogout && (
@@ -281,7 +283,7 @@ function StudentDashboard({ onLogout, campusId }) {
                     {/* Welcome Section */}
                     <div className="mb-8">
                         <div className="flex items-center gap-3 mb-4">
-                            <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
+                            <h1 className="text-3xl font-bold text-gray-900">{schemaLabels.dashboardPrimary}</h1>
                             <button 
                                 onClick={() => setShowEditModal(true)}
                                 className="p-1 hover:bg-gray-200 rounded transition-colors"
@@ -312,7 +314,7 @@ function StudentDashboard({ onLogout, campusId }) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <div>
-                                    <strong>Student Profile Not Found</strong>
+                                    <strong>{schemaLabels.profileNotFound}</strong>
                                     <p className="text-sm mt-1">
                                         Your student profile is not yet available in the system. The dashboard below shows estimated costs and general scholarship opportunities. 
                                         Once your profile is added, personalized scholarship matches will appear here.
@@ -456,7 +458,7 @@ function StudentDashboard({ onLogout, campusId }) {
                                 <h2 className="text-2xl font-bold text-gray-900">Matched Scholarships</h2>
                                 <button
                                     className="px-4 py-2 rounded-full text-sm font-medium text-white hover:opacity-90 transition-opacity"
-                                    style={{ backgroundColor: template.colors.primary || '#5D5FEF' }}
+                                    style={{ backgroundColor: template.colors?.primary || '#5D5FEF' }}
                                 >
                                     <span className="flex items-center gap-2">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -530,7 +532,7 @@ function StudentDashboard({ onLogout, campusId }) {
                                             <div className="flex gap-2">
                                                 <button
                                                     className="flex-1 px-4 py-2 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                                                    style={{ backgroundColor: template.colors.primary || '#5D5FEF' }}
+                                                    style={{ backgroundColor: template.colors?.primary || '#5D5FEF' }}
                                                 >
                                                     Apply Now
                                                 </button>

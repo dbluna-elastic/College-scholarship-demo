@@ -48,3 +48,18 @@ body {
 .chatbot-pulse-button {
     animation: pulse-button 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Gov / State Agency theme (data-schema="agency"): professional blue/grays, high accessibility */
+[data-schema="agency"] {
+    --primary-color: #003366;
+    --secondary-color: #2E7D32;
+    --gov-text-primary: #1a365d;
+    --gov-text-secondary: #2d3748;
+    --gov-bg-subtle: #edf2f7;
+}
+[data-schema="agency"] body {
+    color: var(--gov-text-primary);
+}
+[data-schema="agency"] .bg-gray-50 {
+    background-color: var(--gov-bg-subtle);
+}

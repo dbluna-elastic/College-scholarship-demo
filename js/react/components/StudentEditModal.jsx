@@ -9,7 +9,9 @@
  * - Financial Information
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { TemplateContext } from '../context/TemplateContext.jsx';
+import { getSchemaLabels } from '../../config/schemaConfig.js';
 
 // US States list for dropdown
 const US_STATES = [
@@ -34,6 +36,9 @@ const ENROLLMENT_STAGES = [
 ];
 
 function StudentEditModal({ isOpen, onClose, studentProfile, studentId, onSave }) {
+    const template = useContext(TemplateContext);
+    const schemaLabels = getSchemaLabels(template || {});
+
     // Form state
     const [formData, setFormData] = useState({
         // Personal Information
@@ -155,8 +160,8 @@ function StudentEditModal({ isOpen, onClose, studentProfile, studentId, onSave }
             newErrors.email = 'Invalid email format';
         }
 
-        // GPA validation
-        if (formData.gpa && (isNaN(formData.gpa) || parseFloat(formData.gpa) < 0 || parseFloat(formData.gpa) > 4.0)) {
+        // GPA (school) / Status (agency) validation — only enforce 0–4 range for school
+        if (template?.schema !== 'agency' && formData.gpa && (isNaN(formData.gpa) || parseFloat(formData.gpa) < 0 || parseFloat(formData.gpa) > 4.0)) {
             newErrors.gpa = 'GPA must be between 0.0 and 4.0';
         }
 
@@ -244,7 +249,7 @@ function StudentEditModal({ isOpen, onClose, studentProfile, studentId, onSave }
 
                 {/* Modal Header */}
                 <div className="border-b px-6 py-4">
-                    <h2 className="text-2xl font-bold text-gray-900">Student Information</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{schemaLabels.profileTitle}</h2>
                 </div>
 
                 {/* Form */}
@@ -318,7 +323,7 @@ function StudentEditModal({ isOpen, onClose, studentProfile, studentId, onSave }
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">GPA</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{schemaLabels.statusLabel}</label>
                                 <input
                                     type="text"
                                     name="gpa"
@@ -466,7 +471,7 @@ function StudentEditModal({ isOpen, onClose, studentProfile, studentId, onSave }
                             <h4 className="text-md font-medium text-gray-800 mb-3">Financial Information</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Student Income ($)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{schemaLabels.incomeLabel}</label>
                                     <input
                                         type="text"
                                         name="student_income"

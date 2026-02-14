@@ -163,7 +163,7 @@ useEffect(() => {
 
 2. **Template Switching**: Change template via URL parameter:
    ```
-   http://localhost:8080?template=texas
+   http://localhost:8081?template=texas
    ```
    Both vanilla modules and React should update.
 

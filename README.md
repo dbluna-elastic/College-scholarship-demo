@@ -22,7 +22,7 @@ Multi-tenant college scholarship application built with Vite, React, and Docker.
    ```
 
 3. **Access the application:**
-   - Open http://localhost:8080 in your browser
+   - Open http://localhost:8081 in your browser
    - You should see "Hello World" if everything is working
 
 ### Local Development (without Docker)
@@ -118,7 +118,7 @@ Templates are detected in this order:
 
 See [TEMPLATE_TESTING.md](./TEMPLATE_TESTING.md) for detailed testing instructions.
 
-Quick test: Visit `http://localhost:8080?template=texas` to see Texas branding.
+Quick test: Visit `http://localhost:8081?template=texas` to see Texas branding.
 
 ### Architecture Notes
 

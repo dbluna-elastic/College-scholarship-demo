@@ -130,7 +130,7 @@ export function setUserContext(userContext) {
         });
         
         // Add role as custom label
-        if (userContext.role) {
+        if (userContext.role && typeof apm.addLabels === 'function') {
             apm.addLabels({
                 'user.role': userContext.role,
             });
@@ -171,7 +171,9 @@ export function addCustomContext(labels) {
     }
     
     try {
-        apm.addLabels(labels);
+        if (typeof apm.addLabels === 'function') {
+            apm.addLabels(labels);
+        }
     } catch (error) {
         console.error('❌ Failed to add custom context:', error);
     }

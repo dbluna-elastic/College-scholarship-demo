@@ -14,6 +14,9 @@ import { defaultTemplate } from './templates/default.js';
 import { texasTemplate } from './templates/texas.js';
 import { oklahomaTemplate } from './templates/oklahoma.js';
 import { beauregardTemplate } from './templates/beauregard.js';
+import { okagencyTemplate } from './templates/okagency.js';
+import { okmentalhealthTemplate } from './templates/okmentalhealth.js';
+import { dotTemplate } from './templates/dot.js';
 import { getEnvVar } from '../modules/utils/getEnvVar.js';
 
 // Template registry
@@ -22,6 +25,9 @@ const templates = {
     texas: texasTemplate,
     oklahoma: oklahomaTemplate,
     beauregard: beauregardTemplate,
+    okagency: okagencyTemplate,
+    okmentalhealth: okmentalhealthTemplate,
+    dot: dotTemplate,
 };
 
 /**
@@ -79,6 +85,9 @@ function applyEnvironmentOverrides(template) {
  */
 function applyTemplateStyles(template) {
     const root = document.documentElement;
+    
+    // Schema: school | agency (for Gov vs School styling and accessibility)
+    root.dataset.schema = template.schema || 'school';
     
     // Apply color variables
     if (template.colors) {

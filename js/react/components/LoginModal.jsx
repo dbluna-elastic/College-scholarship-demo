@@ -5,9 +5,9 @@
  * Handles authentication based on password (test = student, staff = counselor).
  */
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
-import { useContext } from 'react';
+import { getSchemaLabels } from '../../config/schemaConfig.js';
 
 function LoginModal({ isOpen, onClose, onLogin }) {
     const template = useContext(TemplateContext);
@@ -22,16 +22,16 @@ function LoginModal({ isOpen, onClose, onLogin }) {
         e.preventDefault();
         setError('');
 
+        const labels = getSchemaLabels(template);
         if (!campusId.trim() || !password.trim()) {
-            setError('Please enter both CampusID and Password');
+            setError(`Please enter both ${labels.idLabel} and Password`);
             return;
         }
 
-        // Validate password and trigger login
         if (password === 'test' || password === 'staff') {
             onLogin(campusId, password);
         } else {
-            setError('Invalid password. Use "test" for student or "staff" for counselor.');
+            setError(`Invalid password. Use "test" for ${labels.primaryRole} or "staff" for ${labels.staffRole}.`);
         }
     };
 
@@ -62,7 +62,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                     </svg>
                 </button>
 
-                {/* University Name Header */}
+                {/* Agency or University Name Header */}
                 <div className="text-center py-6 border-b">
                     <h2 
                         className="text-2xl font-bold"
@@ -71,7 +71,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                             color: template?.colors?.primary || '#003087',
                         }}
                     >
-                        {template?.branding?.institutionName || 'University'}
+                        {template?.branding?.institutionName || 'Portal'}
                     </h2>
                 </div>
 
@@ -80,10 +80,10 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                     {/* Left Panel - Login Form */}
                     <div className="flex-1 p-8 border-r border-gray-200">
                         <div className="border-2 rounded-lg p-6" style={{ borderColor: template?.colors?.primary || '#003087' }}>
-                            {/* CampusID Field */}
+                            {/* ID Field (CampusID or Case ID by schema) */}
                             <div className="mb-6">
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="text-sm font-medium text-gray-700">CampusID</label>
+                                    <label className="text-sm font-medium text-gray-700">{getSchemaLabels(template).idLabel}</label>
                                     <a href="#" className="text-sm text-blue-600 hover:underline">Forgot?</a>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                                         value={campusId}
                                         onChange={(e) => setCampusId(e.target.value)}
                                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Enter your CampusID"
+                                        placeholder={getSchemaLabels(template).idPlaceholder}
                                     />
                                     <button
                                         type="button"
@@ -150,9 +150,9 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                                 Login
                             </button>
 
-                            {/* Disclaimer */}
+                            {/* Disclaimer (schema-based) */}
                             <p className="text-xs text-gray-500 mt-4 text-center">
-                                By logging into this system, you agree to comply with university policies.
+                                {getSchemaLabels(template).disclaimer}
                             </p>
                         </div>
                     </div>
@@ -168,8 +168,9 @@ function LoginModal({ isOpen, onClose, onLogin }) {
                                 <h3 className="text-lg font-bold text-gray-900">Secure Your Session</h3>
                             </div>
                             <p className="text-sm text-gray-700 mb-4">
-                                University services that use SSO login will always direct you to a{' '}
-                                <span className="bg-yellow-200 px-1 rounded">gsu.edu</span> address.
+                                {getSchemaLabels(template).secureSessionNote}
+                                {' '}
+                                <span className="bg-yellow-200 px-1 rounded">official address</span>.
                             </p>
                             <p className="text-sm text-gray-700">
                                 To protect your privacy, close your web browser when you are finished with your session.
@@ -178,7 +179,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
 
                         {/* Duo Authentication Box */}
                         <div className="bg-green-600 rounded-lg p-4 text-white">
-                            <h4 className="font-semibold mb-2">Duo for CampusID Single Sign-On</h4>
+                            <h4 className="font-semibold mb-2">{getSchemaLabels(template).ssoTitle}</h4>
                             <p className="text-sm">
                                 Duo multifactor authentication is required to log into applications that use this single sign-on (SSO) screen.
                             </p>

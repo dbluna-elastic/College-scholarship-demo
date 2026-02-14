@@ -18,6 +18,10 @@ The template engine tries these methods in order:
 - `default` - Generic fallback template
 - `texas` - Texas-specific branding (Blue & Orange)
 - `oklahoma` - Oklahoma-specific branding (Crimson & Cream)
+- `beauregard` - Beauregard Springs High School (Jackalopes theme)
+- `okagency` - State agency template (Oklahoma Agency style)
+- `okmentalhealth` - Oklahoma Department of Mental Health (same overlay layout, mental health content)
+- `dot` - Department of Transportation (State Agency, Gov aesthetic)
 
 ## Testing Template Switching
 
@@ -25,17 +29,32 @@ The template engine tries these methods in order:
 
 1. **Default Template:**
    ```
-   http://localhost:8080
+   http://localhost:8081
    ```
 
 2. **Texas Template:**
    ```
-   http://localhost:8080?template=texas
+   http://localhost:8081?template=texas
    ```
 
 3. **Oklahoma Template:**
    ```
-   http://localhost:8080?template=oklahoma
+   http://localhost:8081?template=oklahoma
+   ```
+
+4. **State Agency (okagency) Template:**
+   ```
+   http://localhost:8081?template=okagency
+   ```
+
+5. **Oklahoma Department of Mental Health (okmentalhealth) Template:**
+   ```
+   http://localhost:8081?template=okmentalhealth
+   ```
+
+6. **Department of Transportation (dot) Template:**
+   ```
+   http://localhost:8081?template=dot
    ```
 
 ### Method 2: Environment Variable

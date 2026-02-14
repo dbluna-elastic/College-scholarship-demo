@@ -23,7 +23,8 @@ console.log('🚀 Application initialized');
  * Initialize the application in the correct order
  */
 async function initializeApp() {
-    // Step 1: Initialize template engine (must happen first)
+    // Step 1: Initialize template engine (must happen first, synchronously)
+    // So window.currentTemplate is set before React mounts and getCurrentTemplate() is safe.
     const template = initializeTemplateEngine();
     console.log('✅ Template engine initialized:', template.name);
 

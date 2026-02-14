@@ -82,6 +82,8 @@ export const oklahomaTemplate = {
         ],
     },
     
+    schema: 'school',
+
     // Elastic Configuration
     elastic: {
         agentId: null,  // Can be overridden via environment variable
