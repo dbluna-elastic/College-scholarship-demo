@@ -101,8 +101,13 @@ export const okmentalhealthTemplate = {
 
     schema: 'agency',
 
+    schemaLabels: {
+        dashboardStaff: 'Mental Health Fraud & Compliance Dashboard',
+    },
+
     elastic: {
         agentId: null,
+        kibanaUrl: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
     },
 
     search: {

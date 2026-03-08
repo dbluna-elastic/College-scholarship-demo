@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
     plugins: [react()],
     server: {
-        port: 8081,
+        port: 8089,
         proxy: {
             // Proxy for Elasticsearch direct searches (ES endpoint)
             '/api/elastic/es': {

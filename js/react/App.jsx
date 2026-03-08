@@ -17,6 +17,7 @@ import AnalyticsDashboard from './components/AnalyticsDashboard.jsx';
 import LoginModal from './components/LoginModal.jsx';
 import StudentDashboard from './components/StudentDashboard.jsx';
 import CounselorDashboard from './components/CounselorDashboard.jsx';
+import MentalHealthFraudDashboard from './components/MentalHealthFraudDashboard.jsx';
 import { getApm, setUserContext, clearUserContext } from '../modules/tracing.js';
 
 function App() {
@@ -161,6 +162,9 @@ function App() {
     }
 
     if (activeSection === 'counselor-dashboard') {
+        if (template?.id === 'okmentalhealth') {
+            return <MentalHealthFraudDashboard onLogout={handleLogout} />;
+        }
         return <CounselorDashboard onLogout={handleLogout} />;
     }
 

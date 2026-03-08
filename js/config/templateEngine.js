@@ -66,7 +66,7 @@ function detectTemplate() {
  */
 function applyEnvironmentOverrides(template) {
     const overrides = { ...template };
-    
+
     // Override Elastic agent ID if provided via environment
     const envAgentId = getEnvVar('ELASTIC_AGENT_ID', '');
     if (envAgentId) {
@@ -75,7 +75,16 @@ function applyEnvironmentOverrides(template) {
             agentId: envAgentId,
         };
     }
-    
+
+    // Override Kibana URL for fraud/ok-* dashboards (e.g. okmentalhealth)
+    const envKibanaUrl = getEnvVar('OK_KIBANA_URL', '');
+    if (envKibanaUrl) {
+        overrides.elastic = {
+            ...overrides.elastic,
+            kibanaUrl: envKibanaUrl,
+        };
+    }
+
     return overrides;
 }
 

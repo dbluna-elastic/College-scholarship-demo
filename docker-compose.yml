@@ -2,7 +2,7 @@ services:
   college-demo:
     build: .
     ports:
-      - "8081:80"
+      - "8089:80"
     env_file:
       - .env
     restart: always
