@@ -25,26 +25,40 @@ function getApiKey() {
 }
 
 /**
+ * Gets the API key to use for a given agent. ok-fraud uses gawdzilla (OK_KIBANA_API_KEY).
+ * @param {string} [agentId] - Agent ID; when 'ok-fraud', use OK_KIBANA_API_KEY if set
+ * @returns {string} API key or empty string
+ */
+function getApiKeyForAgent(agentId) {
+    if (agentId === 'ok-fraud') {
+        const fraudKey = getEnvVar('OK_KIBANA_API_KEY', '');
+        if (fraudKey) return fraudKey;
+    }
+    return getApiKey();
+}
+
+/**
  * Creates Authorization header for Elastic API requests
  * @param {boolean} includeKbnXsrf - Whether to include kbn-xsrf header (for Kibana/Agent Builder)
+ * @param {string} [agentId] - When 'ok-fraud', use OK_KIBANA_API_KEY for gawdzilla auth
  * @returns {Object} Headers object with Authorization
  */
-function createAuthHeaders(includeKbnXsrf = false) {
-    const apiKey = getApiKey();
+function createAuthHeaders(includeKbnXsrf = false, agentId = '') {
+    const apiKey = getApiKeyForAgent(agentId);
     if (!apiKey) {
-        console.warn('ELASTIC_API_KEY not found in environment');
+        console.warn(agentId === 'ok-fraud' ? 'OK_KIBANA_API_KEY (or ELASTIC_API_KEY) not found for ok-fraud' : 'ELASTIC_API_KEY not found in environment');
         return {};
     }
-    
+
     const headers = {
         'Authorization': `ApiKey ${apiKey}`,
         'Content-Type': 'application/json',
     };
-    
+
     if (includeKbnXsrf) {
         headers['kbn-xsrf'] = 'true';
     }
-    
+
     return headers;
 }
 
@@ -53,22 +67,25 @@ function createAuthHeaders(includeKbnXsrf = false) {
  * 
  * @param {string} query - ESQL query string
  * @param {Object} params - Optional query parameters
+ * @param {string} [agentId] - When 'ok-fraud', use OK_KIBANA_API_KEY for gawdzilla (e.g. ok-fraud-phantom-billing)
  * @returns {Promise<Object>} Query results
  */
-export async function fetchESQLQuery(query, params = {}) {
-    const apiKey = getApiKey();
+export async function fetchESQLQuery(query, params = {}, agentId = '') {
+    const apiKey = agentId ? getApiKeyForAgent(agentId) : getApiKey();
     if (!apiKey) {
-        throw new Error('ELASTIC_API_KEY is required for ESQL queries');
+        throw new Error(agentId === 'ok-fraud'
+            ? 'OK_KIBANA_API_KEY (or ELASTIC_API_KEY) is required for ESQL queries to gawdzilla'
+            : 'ELASTIC_API_KEY is required for ESQL queries');
     }
 
     const maskedKey = maskValue(apiKey);
     console.log('Executing ESQL query:', { query: query.substring(0, 100) + '...', apiKey: maskedKey });
 
     try {
-        // ESQL endpoint: /_query (nginx will rewrite /api/elastic/es/_query to /_query)
-        const response = await tracedFetch('/api/elastic/es/_query', {
+        const esPath = agentId === 'ok-fraud' ? '/api/elastic/ok-fraud/es/_query' : '/api/elastic/es/_query';
+        const response = await tracedFetch(esPath, {
             method: 'POST',
-            headers: createAuthHeaders(),
+            headers: createAuthHeaders(false, agentId),
             body: JSON.stringify({
                 query,
                 ...params,
@@ -131,9 +148,11 @@ export async function fetchESQLQuery(query, params = {}) {
  * @returns {Promise<Object>} Agent response
  */
 export async function fetchAgentChat(agentId, message, conversationId = null) {
-    const apiKey = getApiKey();
+    const apiKey = getApiKeyForAgent(agentId);
     if (!apiKey) {
-        throw new Error('ELASTIC_API_KEY is required for Agent Builder');
+        throw new Error(agentId === 'ok-fraud'
+            ? 'OK_KIBANA_API_KEY is required for the ok-fraud agent (add it to .env for gawdzilla)'
+            : 'ELASTIC_API_KEY is required for Agent Builder');
     }
 
     if (!agentId) {
@@ -158,7 +177,7 @@ export async function fetchAgentChat(agentId, message, conversationId = null) {
 
         const response = await tracedFetch(`/api/elastic/agent/${agentId}/chat`, {
             method: 'POST',
-            headers: createAuthHeaders(true), // Include kbn-xsrf header
+            headers: createAuthHeaders(true, agentId), // Include kbn-xsrf; use OK_KIBANA_API_KEY for ok-fraud
             body: JSON.stringify(requestBody),
         });
 

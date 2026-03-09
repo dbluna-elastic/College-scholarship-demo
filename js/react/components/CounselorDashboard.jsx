@@ -109,11 +109,6 @@ function CounselorDashboard({ onLogout }) {
                 </div>
             </nav>
 
-            {/* 3. Blank Hero Section */}
-            <section className="relative h-[600px] flex items-center justify-center bg-gray-50">
-                {/* Empty hero section - placeholder for future content */}
-            </section>
-
             {/* 4. Dashboard Content Placeholder */}
             <section className="py-16 bg-white">
                 <div className="max-w-7xl mx-auto px-4">

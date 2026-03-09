@@ -11,16 +11,15 @@ import { TemplateContext } from '../context/TemplateContext.jsx';
 import { useContext } from 'react';
 import { getEnvVar } from '../../modules/utils/getEnvVar.js';
 
-function ChatWidget({ floating = true, onClose }) {
+function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
     const template = useContext(TemplateContext);
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    // Get agent ID from template or environment
-    // Fix common typo: "studentcounsler" -> "studentcounselor"
-    let agentId = template?.elastic?.agentId || getEnvVar('ELASTIC_AGENT_ID', '');
+    // Get agent ID: override prop (e.g. ok-fraud on case-worker page) > template > env > default
+    let agentId = agentIdOverride ?? template?.elastic?.agentId ?? getEnvVar('ELASTIC_AGENT_ID', '');
     
     // Correct the typo if present, or use default if empty
     if (agentId === 'studentcounsler') {
@@ -87,7 +86,9 @@ function ChatWidget({ floating = true, onClose }) {
             >
                 <div>
                     <h3 className="font-semibold">Chat Assistant</h3>
-                    <p className="text-xs opacity-90">Ask me about scholarships</p>
+                    <p className="text-xs opacity-90">
+                        {agentId === 'ok-fraud' ? 'Ask me about fraud detection and compliance' : 'Ask me about scholarships'}
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <button
@@ -121,8 +122,16 @@ function ChatWidget({ floating = true, onClose }) {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                 {messages.length === 0 && (
                     <div className="text-center text-gray-500 text-sm py-8">
-                        <p>Start a conversation by asking about scholarships!</p>
-                        <p className="mt-2 text-xs">Try: "What scholarships are available?"</p>
+                        <p>
+                            {agentId === 'ok-fraud'
+                                ? 'Ask about fraud indicators, investigations, or compliance.'
+                                : 'Start a conversation by asking about scholarships!'}
+                        </p>
+                        <p className="mt-2 text-xs">
+                            {agentId === 'ok-fraud'
+                                ? 'Try: "What are common fraud indicators?"'
+                                : 'Try: "What scholarships are available?"'}
+                        </p>
                     </div>
                 )}
 

@@ -6,6 +6,17 @@ export default defineConfig({
     server: {
         port: 8089,
         proxy: {
+            // Proxy for ok-fraud ESQL (gawdzilla Elasticsearch) – must be before /api/elastic/es
+            '/api/elastic/ok-fraud/es': {
+                target: 'https://gawdzilla-0d3e9e.es.us-east-2.aws.elastic-cloud.com:443',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api\/elastic\/ok-fraud\/es/, ''),
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('ok-fraud ESQL proxy error:', err);
+                    });
+                }
+            },
             // Proxy for Elasticsearch direct searches (ES endpoint)
             '/api/elastic/es': {
                 target: 'https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud:443',
@@ -20,7 +31,18 @@ export default defineConfig({
                     });
                 }
             },
-            // Proxy for Kibana/Agent Builder API
+            // Proxy for ok-fraud Agent Builder (gawdzilla Kibana) – must be before general /api/elastic
+            '/api/elastic/agent/ok-fraud/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (ok-fraud) proxy error:', err);
+                    });
+                }
+            },
+            // Proxy for Kibana/Agent Builder API (default: apex)
             '/api/elastic': {
                 target: 'https://apex-dec2025-group4-b01431.kb.us-central1.gcp.elastic.cloud',
                 changeOrigin: true,

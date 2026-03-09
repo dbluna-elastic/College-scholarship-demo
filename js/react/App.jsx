@@ -18,6 +18,7 @@ import LoginModal from './components/LoginModal.jsx';
 import StudentDashboard from './components/StudentDashboard.jsx';
 import CounselorDashboard from './components/CounselorDashboard.jsx';
 import MentalHealthFraudDashboard from './components/MentalHealthFraudDashboard.jsx';
+import FraudRecipientDetail from './components/FraudRecipientDetail.jsx';
 import { getApm, setUserContext, clearUserContext } from '../modules/tracing.js';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
     const [userRole, setUserRole] = useState(null); // 'student' | 'counselor' | null
     const [campusId, setCampusId] = useState(null); // Store campus ID from login
     const [headerScrolled, setHeaderScrolled] = useState(false);
+    const [fraudRecipientId, setFraudRecipientId] = useState(null);
 
     useEffect(() => {
         console.log('⚛️ React App mounted with template:', template?.name);
@@ -161,9 +163,30 @@ function App() {
         return <StudentDashboard onLogout={handleLogout} campusId={campusId} />;
     }
 
+    if (activeSection === 'fraud-recipient-detail') {
+        return (
+            <FraudRecipientDetail
+                medicaidRecipientId={fraudRecipientId}
+                onBack={() => {
+                    setFraudRecipientId(null);
+                    setActiveSection('counselor-dashboard');
+                }}
+                onLogout={handleLogout}
+            />
+        );
+    }
+
     if (activeSection === 'counselor-dashboard') {
         if (template?.id === 'okmentalhealth') {
-            return <MentalHealthFraudDashboard onLogout={handleLogout} />;
+            return (
+                <MentalHealthFraudDashboard
+                    onLogout={handleLogout}
+                    onRecipientClick={(id) => {
+                        setFraudRecipientId(id);
+                        setActiveSection('fraud-recipient-detail');
+                    }}
+                />
+            );
         }
         return <CounselorDashboard onLogout={handleLogout} />;
     }

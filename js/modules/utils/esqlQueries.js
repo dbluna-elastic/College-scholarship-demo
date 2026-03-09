@@ -330,6 +330,217 @@ export async function searchScholarshipsWithTemplate(template, criteria = {}) {
 }
 
 /**
+ * Get Total Potential Fraud Detected YTD from ok-fraud-phantom-billing (gawdzilla).
+ * ESQL: FROM ok-fraud-phantom-billing | STATS total_loss = SUM(Total_Loss_Value)
+ *
+ * @param {string} [agentId] - Use 'ok-fraud' to use OK_KIBANA_API_KEY for gawdzilla
+ * @returns {Promise<number|null>} Sum of Total_Loss_Value or null if no data/error
+ */
+export async function getFraudYTDTotalLoss(agentId = 'ok-fraud') {
+    const query = 'FROM ok-fraud-phantom-billing | STATS total_loss = SUM(Total_Loss_Value)';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result.columns || !result.values || result.values.length === 0) {
+            return null;
+        }
+        const row = result.values[0];
+        const colIndex = result.columns.findIndex((c) => c.name === 'total_loss');
+        const value = colIndex >= 0 && row[colIndex] != null ? Number(row[colIndex]) : null;
+        return value;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn('ok-fraud-phantom-billing index not found (404). YTD total not available.');
+            return null;
+        }
+        console.error('Fraud YTD total loss query error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get Total Claims Flagged from ok-fraud-phantom-billing (gawdzilla).
+ * ESQL: FROM ok-fraud-phantom-billing | WHERE Flag_Type IS NOT NULL | STATS total_claims_flagged = COUNT(*)
+ *
+ * @param {string} [agentId] - Use 'ok-fraud' to use OK_KIBANA_API_KEY for gawdzilla
+ * @returns {Promise<number|null>} Count of flagged claims or null if no data/error
+ */
+export async function getFraudTotalClaimsFlagged(agentId = 'ok-fraud') {
+    const query = 'FROM ok-fraud-phantom-billing | WHERE Flag_Type IS NOT NULL | STATS total_claims_flagged = COUNT(*)';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result.columns || !result.values || result.values.length === 0) {
+            return null;
+        }
+        const row = result.values[0];
+        const colIndex = result.columns.findIndex((c) => c.name === 'total_claims_flagged');
+        const value = colIndex >= 0 && row[colIndex] != null ? Number(row[colIndex]) : null;
+        return value;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn('ok-fraud-phantom-billing index not found (404). Total claims flagged not available.');
+            return null;
+        }
+        console.error('Fraud total claims flagged query error:', error);
+        throw error;
+    }
+}
+
+/** True if column name (lowercase) looks like a Medicaid recipient ID field. */
+function columnLooksLikeRecipientId(col) {
+    const lower = (col && String(col)).toLowerCase();
+    return (lower.includes('medicaid') && lower.includes('recipient')) || (lower.includes('recipient') && lower.includes('id'));
+}
+
+/** True if column name (lowercase) looks like a claim ID field. */
+function columnLooksLikeClaimId(col) {
+    const lower = (col && String(col)).toLowerCase();
+    return lower.includes('claim') && lower.includes('id');
+}
+
+/**
+ * Get high-priority fraud cases from ok-fraud-* (gawdzilla).
+ * ESQL: FROM ok-fraud-* | WHERE Risk_Score >= 80 | EVAL Priority = CASE(...) | KEEP ... | LIMIT 100
+ *
+ * @param {string} [agentId] - Use 'ok-fraud' to use OK_KIBANA_API_KEY for gawdzilla
+ * @returns {Promise<Array<Object>>} Array of row objects (keys: @timestamp, Claim_ID, Patient_ID, Flag_Type, etc.) or [] on empty/404
+ */
+export async function getFraudHighPriorityCases(agentId = 'ok-fraud') {
+    const query = `FROM ok-fraud-*
+| WHERE Risk_Score >= 80 AND Medicaid_Recipient_ID IS NOT NULL
+| EVAL Priority = CASE(
+    Risk_Score >= 90 AND Total_Loss_Value >= 10000, "Critical",
+    Risk_Score >= 80 AND Total_Loss_Value >= 5000, "High",
+    "Medium")
+| KEEP @timestamp, Claim_ID, Patient_ID, Medicaid_Recipient_ID, Flag_Type, Total_Loss_Value, Amount_Submitted, Investigator_Assigned, Agency_Type, Priority
+| LIMIT 100`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result.columns || !result.values) {
+            return [];
+        }
+        const columns = result.columns.map((c) => c.name);
+        if (typeof window !== 'undefined' && (window.location?.hostname === 'localhost' || process?.env?.NODE_ENV === 'development')) {
+            console.log('ESQL high-priority columns:', columns);
+        }
+        const toCanonicalKey = (name) => {
+            const map = {
+                medicaid_recipient_id: 'Medicaid_Recipient_ID',
+                claim_id: 'Claim_ID',
+                claimid: 'Claim_ID',
+                ClaimId: 'Claim_ID',
+                flag_type: 'Flag_Type',
+                agency_type: 'Agency_Type',
+                total_loss_value: 'Total_Loss_Value',
+                amount_submitted: 'Amount_Submitted',
+                investigator_assigned: 'Investigator_Assigned',
+                risk_score: 'Risk_Score',
+                patient_id: 'Patient_ID',
+                timestamp: '@timestamp',
+            };
+            return map[name] || name;
+        };
+        return result.values.map((row) => {
+            const obj = {};
+            columns.forEach((col, idx) => {
+                const val = row[idx];
+                obj[col] = val;
+                const canonical = toCanonicalKey(col);
+                if (canonical !== col) obj[canonical] = val;
+                if (val != null && val !== '' && columnLooksLikeRecipientId(col)) obj['Medicaid_Recipient_ID'] = val;
+                if (val != null && val !== '' && columnLooksLikeClaimId(col)) obj['Claim_ID'] = val;
+            });
+            return obj;
+        });
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn('ok-fraud-* index not found (404). High-priority cases not available.');
+            return [];
+        }
+        console.error('Fraud high-priority cases query error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get all records for a Medicaid recipient from ok-fraud-* (gawdzilla) for the detail page.
+ *
+ * @param {string} medicaidRecipientId - Recipient ID (e.g. OK-MCD-137185)
+ * @param {string} [agentId] - Use 'ok-fraud' for gawdzilla
+ * @returns {Promise<Array<Object>>} Array of row objects or [] on empty/404
+ */
+export async function getFraudRecipientDetail(medicaidRecipientId, agentId = 'ok-fraud') {
+    if (!medicaidRecipientId || String(medicaidRecipientId).trim() === '') {
+        return [];
+    }
+    const escaped = String(medicaidRecipientId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+    const buildQuery = (recipientIdField) => `FROM ok-fraud-*
+| WHERE ${recipientIdField} == "${escaped}"
+| EVAL Priority = CASE(
+    Risk_Score >= 90 AND Total_Loss_Value >= 10000, "Critical",
+    Risk_Score >= 80 AND Total_Loss_Value >= 5000, "High",
+    "Medium")
+| KEEP @timestamp, Claim_ID, Patient_ID, ${recipientIdField}, Flag_Type, Total_Loss_Value, Amount_Submitted, Investigator_Assigned, Agency_Type, Priority, Risk_Score
+| SORT Risk_Score DESC
+| LIMIT 100`;
+
+    const runQuery = (query) => fetchESQLQuery(query, {}, agentId);
+
+    try {
+        let result;
+        try {
+            result = await runQuery(buildQuery('Medicaid_Recipient_ID'));
+        } catch (firstErr) {
+            if (firstErr.status === 400) {
+                result = await runQuery(buildQuery('medicaid_recipient_id'));
+            } else {
+                throw firstErr;
+            }
+        }
+        if (!result.columns || !result.values) {
+            return [];
+        }
+        const columns = result.columns.map((c) => c.name);
+        const toCanonicalKey = (name) => {
+            const map = {
+                medicaid_recipient_id: 'Medicaid_Recipient_ID',
+                claim_id: 'Claim_ID',
+                claimid: 'Claim_ID',
+                ClaimId: 'Claim_ID',
+                flag_type: 'Flag_Type',
+                agency_type: 'Agency_Type',
+                total_loss_value: 'Total_Loss_Value',
+                amount_submitted: 'Amount_Submitted',
+                investigator_assigned: 'Investigator_Assigned',
+                risk_score: 'Risk_Score',
+                patient_id: 'Patient_ID',
+                timestamp: '@timestamp',
+            };
+            return map[name] || name;
+        };
+        return result.values.map((row) => {
+            const obj = {};
+            columns.forEach((col, idx) => {
+                const val = row[idx];
+                obj[col] = val;
+                const canonical = toCanonicalKey(col);
+                if (canonical !== col) obj[canonical] = val;
+                if (val != null && val !== '' && columnLooksLikeRecipientId(col)) obj['Medicaid_Recipient_ID'] = val;
+                if (val != null && val !== '' && columnLooksLikeClaimId(col)) obj['Claim_ID'] = val;
+            });
+            return obj;
+        });
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn('ok-fraud-* index not found (404). Recipient detail not available.');
+            return [];
+        }
+        console.error('Fraud recipient detail query error:', error);
+        throw error;
+    }
+}
+
+/**
  * Get document ID by searching with standard Elasticsearch query
  * Used when ESQL doesn't return _id
  * 

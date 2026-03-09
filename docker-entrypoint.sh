@@ -28,6 +28,11 @@ if [ -f /usr/share/nginx/html/index.html ]; then
         ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_API_KEY:'$ELASTIC_API_KEY',"
     fi
     
+    # Add OK_KIBANA_API_KEY if set (for ok-fraud agent chat on gawdzilla)
+    if [ -n "$OK_KIBANA_API_KEY" ]; then
+        ENV_SCRIPT="${ENV_SCRIPT}OK_KIBANA_API_KEY:'$OK_KIBANA_API_KEY',"
+    fi
+    
     # Add ELASTIC_APM_SERVER_URL if set (for browser APM agent)
     if [ -n "$ELASTIC_APM_SERVER_URL" ]; then
         ENV_SCRIPT="${ENV_SCRIPT}ELASTIC_APM_SERVER_URL:'$ELASTIC_APM_SERVER_URL',"
@@ -59,13 +64,19 @@ fi
 # Use default values from vite.config.js if not set
 export ELASTIC_ES_URL=${ELASTIC_ES_URL:-https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud:443}
 export ELASTIC_KB_URL=${ELASTIC_KB_URL:-https://apex-dec2025-group4-b01431.kb.us-central1.gcp.elastic.cloud}
+export OK_KIBANA_URL=${OK_KIBANA_URL:-https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com}
+
+# Gawdzilla Elasticsearch URL for ok-fraud ESQL (default: same deployment as OK_KIBANA_URL, ES endpoint)
+export OK_ELASTIC_ES_URL=${OK_ELASTIC_ES_URL:-https://gawdzilla-0d3e9e.es.us-east-2.aws.elastic-cloud.com:443}
 
 # Extract hostnames from URLs for Host header (remove https:// prefix)
 export ELASTIC_ES_HOST=${ELASTIC_ES_URL#https://}
 export ELASTIC_KB_HOST=${ELASTIC_KB_URL#https://}
+export OK_KIBANA_HOST=${OK_KIBANA_URL#https://}
+export OK_ELASTIC_ES_HOST=${OK_ELASTIC_ES_URL#https://}
 
 # Use envsubst to replace variables in nginx.conf
-envsubst '${ELASTIC_ES_URL} ${ELASTIC_KB_URL} ${ELASTIC_ES_HOST} ${ELASTIC_KB_HOST}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+envsubst '${ELASTIC_ES_URL} ${ELASTIC_KB_URL} ${OK_KIBANA_URL} ${OK_ELASTIC_ES_URL} ${ELASTIC_ES_HOST} ${ELASTIC_KB_HOST} ${OK_KIBANA_HOST} ${OK_ELASTIC_ES_HOST}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
 # Configure and start Elastic Agent if API key is provided
 if [ -n "$ELASTIC_AGENT_API_KEY" ] && [ -f "/opt/elastic-agent/elastic-agent" ]; then

@@ -4,18 +4,13 @@
  * deadlines, calendar, and at-risk list. Links to Kibana dashboards (ok-*) on gawdzilla.
  */
 
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import { getSchemaLabels } from '../../config/schemaConfig.js';
+import { getFraudYTDTotalLoss, getFraudTotalClaimsFlagged, getFraudHighPriorityCases } from '../../modules/utils/esqlQueries.js';
 import ChatWidget from './ChatWidget.jsx';
 
 // Placeholder data for fraud dashboard (replace with API/Elastic when available)
-const HIGH_PRIORITY_CASES = [
-    { id: 'F-100023', name: 'Provider A – Metro BH', riskLevel: 'Critical', lastActivity: '14 days ago', fraudIndicator: 'Duplicate claim detected', claimStatus: 'Under review', actions: ['Flag', 'Investigate', 'Refer'] },
-    { id: 'F-100011', name: 'Provider B – Rural SUD', riskLevel: 'High', lastActivity: '21 days ago', fraudIndicator: 'Unusual billing pattern', claimStatus: 'Flagged', actions: ['Email', 'Refer to Compliance'] },
-    { id: 'F-100045', name: 'Provider C – Outpatient MH', riskLevel: 'Medium', lastActivity: '7 days ago', fraudIndicator: 'Suspicious diagnosis code', claimStatus: 'Clear', actions: ['Flag', 'Schedule'] },
-];
-
 const DOCUMENT_QUEUE = [
     { label: 'Medical records – Case F-100023', icon: 'document' },
     { label: 'Billing statements – Provider B', icon: 'document' },
@@ -40,11 +35,116 @@ const AT_RISK_LIST = [
     { name: 'Provider C – Outpatient MH', score: 30 },
 ];
 
-function MentalHealthFraudDashboard({ onLogout }) {
+function formatLastActivity(ts) {
+    if (ts == null) return '—';
+    const date = typeof ts === 'number' ? new Date(ts) : new Date(ts);
+    if (Number.isNaN(date.getTime())) return '—';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+    if (diffDays < 0) return date.toLocaleDateString();
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 30) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+}
+
+/** Pick first defined value from row for given keys (handles ESQL column name casing). */
+function getField(row, ...keys) {
+    for (const k of keys) {
+        const v = row[k];
+        if (v != null && v !== '') return v;
+    }
+    return null;
+}
+
+/** Fallback: first value in row that looks like a recipient ID (e.g. OK-MCD-123). */
+function getRecipientIdFallback(row) {
+    for (const v of Object.values(row)) {
+        const s = v != null ? String(v).trim() : '';
+        if (s === '') continue;
+        if ((s.includes('MCD') || s.startsWith('OK-')) && /^[A-Za-z0-9_.-]+$/.test(s)) return s;
+    }
+    return null;
+}
+
+function MentalHealthFraudDashboard({ onLogout, onRecipientClick }) {
     const template = useContext(TemplateContext);
     const schemaLabels = getSchemaLabels(template);
     const primaryColor = template?.colors?.primary || '#5D5FEF';
     const kibanaUrl = template?.elastic?.kibanaUrl || '';
+    const [totalLossYtd, setTotalLossYtd] = useState(null);
+    const [totalLossError, setTotalLossError] = useState(null);
+    const [totalLossLoading, setTotalLossLoading] = useState(true);
+    const [totalClaimsFlagged, setTotalClaimsFlagged] = useState(null);
+    const [totalClaimsFlaggedError, setTotalClaimsFlaggedError] = useState(null);
+    const [totalClaimsFlaggedLoading, setTotalClaimsFlaggedLoading] = useState(true);
+    const [highPriorityCases, setHighPriorityCases] = useState([]);
+    const [highPriorityCasesLoading, setHighPriorityCasesLoading] = useState(true);
+    const [highPriorityCasesError, setHighPriorityCasesError] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        setTotalLossLoading(true);
+        setTotalLossError(null);
+        getFraudYTDTotalLoss('ok-fraud')
+            .then((value) => {
+                if (!cancelled) {
+                    setTotalLossYtd(value);
+                    setTotalLossLoading(false);
+                }
+            })
+            .catch((err) => {
+                if (!cancelled) {
+                    setTotalLossError(err?.message || 'Failed to load');
+                    setTotalLossYtd(null);
+                    setTotalLossLoading(false);
+                }
+            });
+        return () => { cancelled = true; };
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        setTotalClaimsFlaggedLoading(true);
+        setTotalClaimsFlaggedError(null);
+        getFraudTotalClaimsFlagged('ok-fraud')
+            .then((value) => {
+                if (!cancelled) {
+                    setTotalClaimsFlagged(value);
+                    setTotalClaimsFlaggedLoading(false);
+                }
+            })
+            .catch((err) => {
+                if (!cancelled) {
+                    setTotalClaimsFlaggedError(err?.message || 'Failed to load');
+                    setTotalClaimsFlagged(null);
+                    setTotalClaimsFlaggedLoading(false);
+                }
+            });
+        return () => { cancelled = true; };
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        setHighPriorityCasesLoading(true);
+        setHighPriorityCasesError(null);
+        getFraudHighPriorityCases('ok-fraud')
+            .then((cases) => {
+                if (!cancelled) {
+                    setHighPriorityCases(cases);
+                    setHighPriorityCasesLoading(false);
+                }
+            })
+            .catch((err) => {
+                if (!cancelled) {
+                    setHighPriorityCasesError(err?.message || 'Failed to load');
+                    setHighPriorityCases([]);
+                    setHighPriorityCasesLoading(false);
+                }
+            });
+        return () => { cancelled = true; };
+    }, []);
 
     if (!template) {
         return (
@@ -143,55 +243,95 @@ function MentalHealthFraudDashboard({ onLogout }) {
                         <div className="px-6 py-4 border-b border-gray-200">
                             <h3 className="text-xl font-bold text-gray-900">High-Priority Fraud Cases</h3>
                         </div>
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto overflow-y-auto max-h-[20rem]">
                             <table className="w-full text-left text-sm">
                                 <thead>
                                     <tr className="bg-gray-50 border-b border-gray-200">
-                                        <th className="px-6 py-3 font-semibold text-gray-900">Case / Provider</th>
-                                        <th className="px-6 py-3 font-semibold text-gray-900">Risk Level</th>
-                                        <th className="px-6 py-3 font-semibold text-gray-900">Last Activity</th>
-                                        <th className="px-6 py-3 font-semibold text-gray-900">Fraud Indicator</th>
-                                        <th className="px-6 py-3 font-semibold text-gray-900">Claim Status</th>
-                                        <th className="px-6 py-3 font-semibold text-gray-900">Action</th>
+                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">Medicaid_Recipient_ID</th>
+                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">Risk Level</th>
+                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">@timestamp</th>
+                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">Flag_Type</th>
+                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">Agency_Type</th>
+                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {HIGH_PRIORITY_CASES.map((row, i) => (
-                                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="px-6 py-4">
-                                                <span className="font-medium text-gray-900">{row.name}</span>
-                                                <span className="text-gray-500 block text-xs">#{row.id}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span
-                                                    className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                                        row.riskLevel === 'Critical'
-                                                            ? 'bg-red-100 text-red-800'
-                                                            : row.riskLevel === 'High'
-                                                            ? 'bg-amber-100 text-amber-800'
-                                                            : 'bg-gray-100 text-gray-800'
-                                                    }`}
-                                                >
-                                                    {row.riskLevel}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600">{row.lastActivity}</td>
-                                            <td className="px-6 py-4 text-gray-700">{row.fraudIndicator}</td>
-                                            <td className="px-6 py-4 text-gray-600">{row.claimStatus}</td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {row.actions.slice(0, 2).map((action, j) => (
-                                                        <button
-                                                            key={j}
-                                                            className="px-3 py-1 text-xs font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100"
-                                                        >
-                                                            {action}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                    {highPriorityCasesLoading ? (
+                                        <tr className="border-b border-gray-100">
+                                            <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                                Loading…
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : highPriorityCasesError ? (
+                                        <tr className="border-b border-gray-100">
+                                            <td colSpan={6} className="px-6 py-8 text-center text-red-600">
+                                                {highPriorityCasesError}
+                                            </td>
+                                        </tr>
+                                    ) : highPriorityCases.length === 0 ? (
+                                        <tr className="border-b border-gray-100">
+                                            <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                                No high-priority cases
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        highPriorityCases.map((row, i) => {
+                                            const recipientId = getField(row, 'Medicaid_Recipient_ID', 'medicaid_recipient_id', 'MedicaidRecipientID') ?? getRecipientIdFallback(row);
+                                            const claimId = getField(row, 'Claim_ID', 'claim_id', 'ClaimId');
+                                            const isClickable = recipientId && typeof onRecipientClick === 'function';
+                                            return (
+                                            <tr key={String(claimId ?? getField(row, 'Claim_ID', 'claim_id') ?? i)} className="border-b border-gray-100 hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    {isClickable ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onRecipientClick(recipientId)}
+                                                            className="font-medium text-left underline cursor-pointer hover:opacity-80 transition-opacity"
+                                                            style={{ color: primaryColor }}
+                                                        >
+                                                            {recipientId}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="font-medium text-gray-900">{recipientId ?? '—'}</span>
+                                                    )}
+                                                    <span className="text-gray-500 block text-xs">#{claimId ?? '—'}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span
+                                                        className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                            row.Priority === 'Critical'
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : row.Priority === 'High'
+                                                                ? 'bg-amber-100 text-amber-800'
+                                                                : 'bg-gray-100 text-gray-800'
+                                                        }`}
+                                                    >
+                                                        {row.Priority ?? 'Medium'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-600">{formatLastActivity(getField(row, '@timestamp', 'timestamp'))}</td>
+                                                <td className="px-6 py-4 text-gray-700">{getField(row, 'Flag_Type', 'flag_type') ?? '—'}</td>
+                                                <td className="px-6 py-4 text-gray-600">{getField(row, 'Agency_Type', 'agency_type') ?? '—'}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        <button
+                                                            type="button"
+                                                            className="px-3 py-1 text-xs font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100"
+                                                        >
+                                                            Flag
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="px-3 py-1 text-xs font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100"
+                                                        >
+                                                            Investigate
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            );
+                                        })
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -201,7 +341,17 @@ function MentalHealthFraudDashboard({ onLogout }) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                             <h4 className="text-sm font-medium text-gray-600 mb-2">Total Potential Fraud Detected YTD</h4>
-                            <p className="text-3xl font-bold text-green-700">$187,400</p>
+                            {totalLossLoading ? (
+                                <p className="text-3xl font-bold text-gray-400">Loading…</p>
+                            ) : totalLossError ? (
+                                <p className="text-lg font-medium text-red-600">{totalLossError}</p>
+                            ) : totalLossYtd != null ? (
+                                <p className="text-3xl font-bold text-green-700">
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalLossYtd)}
+                                </p>
+                            ) : (
+                                <p className="text-3xl font-bold text-gray-500">—</p>
+                            )}
                         </div>
                         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                             <h4 className="text-sm font-medium text-gray-600 mb-2">Investigation Resolution Rate</h4>
@@ -217,7 +367,15 @@ function MentalHealthFraudDashboard({ onLogout }) {
                         </div>
                         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                             <h4 className="text-sm font-medium text-gray-600 mb-2">Total Claims Flagged</h4>
-                            <p className="text-3xl font-bold" style={{ color: primaryColor }}>312</p>
+                            {totalClaimsFlaggedLoading ? (
+                                <p className="text-3xl font-bold text-gray-400">Loading…</p>
+                            ) : totalClaimsFlaggedError ? (
+                                <p className="text-lg font-medium text-red-600">{totalClaimsFlaggedError}</p>
+                            ) : totalClaimsFlagged != null ? (
+                                <p className="text-3xl font-bold" style={{ color: primaryColor }}>{totalClaimsFlagged.toLocaleString()}</p>
+                            ) : (
+                                <p className="text-3xl font-bold text-gray-500">—</p>
+                            )}
                         </div>
                     </div>
 
@@ -354,7 +512,7 @@ function MentalHealthFraudDashboard({ onLogout }) {
                 </div>
             </footer>
 
-            <ChatWidget floating={true} />
+            <ChatWidget floating={true} agentId="ok-fraud" />
         </div>
     );
 }
