@@ -277,10 +277,10 @@ function MentalHealthFraudDashboard({ onLogout, onRecipientClick }) {
                                     ) : (
                                         highPriorityCases.map((row, i) => {
                                             const recipientId = getField(row, 'Medicaid_Recipient_ID', 'medicaid_recipient_id', 'MedicaidRecipientID') ?? getRecipientIdFallback(row);
-                                            const claimId = getField(row, 'Claim_ID', 'claim_id', 'ClaimId');
+                                            const claimId = getField(row, 'Claim_ID', 'claim_id', 'ClaimId', 'claimid', 'Claim_Number', 'claim_number');
                                             const isClickable = recipientId && typeof onRecipientClick === 'function';
                                             return (
-                                            <tr key={String(claimId ?? getField(row, 'Claim_ID', 'claim_id') ?? i)} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <tr key={String(claimId ?? getField(row, 'Claim_ID', 'claim_id', 'ClaimId', 'Claim_Number') ?? i)} className="border-b border-gray-100 hover:bg-gray-50">
                                                 <td className="px-6 py-4">
                                                     {isClickable ? (
                                                         <button

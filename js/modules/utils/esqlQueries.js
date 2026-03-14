@@ -394,7 +394,7 @@ function columnLooksLikeRecipientId(col) {
 /** True if column name (lowercase) looks like a claim ID field. */
 function columnLooksLikeClaimId(col) {
     const lower = (col && String(col)).toLowerCase();
-    return lower.includes('claim') && lower.includes('id');
+    return lower.includes('claim') && (lower.includes('id') || lower.includes('number') || lower.includes('_no') || lower.includes('ref') || lower.includes('num'));
 }
 
 /**
@@ -421,6 +421,11 @@ export async function getFraudHighPriorityCases(agentId = 'ok-fraud') {
         const columns = result.columns.map((c) => c.name);
         if (typeof window !== 'undefined' && (window.location?.hostname === 'localhost' || process?.env?.NODE_ENV === 'development')) {
             console.log('ESQL high-priority columns:', columns);
+            if (result.values.length > 0) {
+                const firstRow = result.values[0];
+                const rowKeys = columns.reduce((acc, col, i) => ({ ...acc, [col]: firstRow[i] }), {});
+                console.log('ESQL high-priority first row (column -> value):', rowKeys);
+            }
         }
         const toCanonicalKey = (name) => {
             const map = {
@@ -428,6 +433,10 @@ export async function getFraudHighPriorityCases(agentId = 'ok-fraud') {
                 claim_id: 'Claim_ID',
                 claimid: 'Claim_ID',
                 ClaimId: 'Claim_ID',
+                claim_number: 'Claim_ID',
+                Claim_Number: 'Claim_ID',
+                claim_no: 'Claim_ID',
+                Claim_No: 'Claim_ID',
                 flag_type: 'Flag_Type',
                 agency_type: 'Agency_Type',
                 total_loss_value: 'Total_Loss_Value',
@@ -449,6 +458,14 @@ export async function getFraudHighPriorityCases(agentId = 'ok-fraud') {
                 if (val != null && val !== '' && columnLooksLikeRecipientId(col)) obj['Medicaid_Recipient_ID'] = val;
                 if (val != null && val !== '' && columnLooksLikeClaimId(col)) obj['Claim_ID'] = val;
             });
+            if ((obj['Claim_ID'] == null || obj['Claim_ID'] === '') && columns.length > 0) {
+                for (const k of Object.keys(obj)) {
+                    if (columnLooksLikeClaimId(k) && obj[k] != null && obj[k] !== '') {
+                        obj['Claim_ID'] = obj[k];
+                        break;
+                    }
+                }
+            }
             return obj;
         });
     } catch (error) {
@@ -507,6 +524,10 @@ export async function getFraudRecipientDetail(medicaidRecipientId, agentId = 'ok
                 claim_id: 'Claim_ID',
                 claimid: 'Claim_ID',
                 ClaimId: 'Claim_ID',
+                claim_number: 'Claim_ID',
+                Claim_Number: 'Claim_ID',
+                claim_no: 'Claim_ID',
+                Claim_No: 'Claim_ID',
                 flag_type: 'Flag_Type',
                 agency_type: 'Agency_Type',
                 total_loss_value: 'Total_Loss_Value',
@@ -528,6 +549,14 @@ export async function getFraudRecipientDetail(medicaidRecipientId, agentId = 'ok
                 if (val != null && val !== '' && columnLooksLikeRecipientId(col)) obj['Medicaid_Recipient_ID'] = val;
                 if (val != null && val !== '' && columnLooksLikeClaimId(col)) obj['Claim_ID'] = val;
             });
+            if ((obj['Claim_ID'] == null || obj['Claim_ID'] === '') && columns.length > 0) {
+                for (const k of Object.keys(obj)) {
+                    if (columnLooksLikeClaimId(k) && obj[k] != null && obj[k] !== '') {
+                        obj['Claim_ID'] = obj[k];
+                        break;
+                    }
+                }
+            }
             return obj;
         });
     } catch (error) {

@@ -165,7 +165,7 @@ function FraudRecipientDetail({ medicaidRecipientId, onBack, onLogout }) {
                                         {detailRows.map((row, i) => (
                                             <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                                                 <td className="px-6 py-4 text-gray-600">{formatTimestamp(getField(row, '@timestamp', 'timestamp'))}</td>
-                                                <td className="px-6 py-4 text-gray-900">{getField(row, 'Claim_ID', 'claim_id', 'ClaimId', 'claimid') ?? '—'}</td>
+                                                <td className="px-6 py-4 text-gray-900">{getField(row, 'Claim_ID', 'claim_id', 'ClaimId', 'claimid', 'Claim_Number', 'claim_number') ?? '—'}</td>
                                                 <td className="px-6 py-4 text-gray-700">{getField(row, 'Flag_Type', 'flag_type') ?? '—'}</td>
                                                 <td className="px-6 py-4 text-gray-700">{getField(row, 'Total_Loss_Value', 'total_loss_value') != null ? Number(getField(row, 'Total_Loss_Value', 'total_loss_value'))?.toLocaleString() : '—'}</td>
                                                 <td className="px-6 py-4 text-gray-700">{getField(row, 'Amount_Submitted', 'amount_submitted') != null ? Number(getField(row, 'Amount_Submitted', 'amount_submitted'))?.toLocaleString() : '—'}</td>
