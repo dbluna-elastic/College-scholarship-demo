@@ -172,3 +172,14 @@ export function switchTemplate(templateId) {
     
     return template;
 }
+
+/**
+ * Options for the template switcher UI (id + display name).
+ * @returns {Array<{ id: string, name: string }>}
+ */
+export function getTemplateSwitchOptions() {
+    return Object.entries(templates).map(([id, t]) => ({
+        id,
+        name: t.name || id,
+    }));
+}

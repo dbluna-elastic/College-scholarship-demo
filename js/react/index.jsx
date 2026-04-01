@@ -8,6 +8,7 @@
 import { createRoot } from 'react-dom/client';
 import { TemplateProvider } from './context/TemplateContext.jsx';
 import App from './App.jsx';
+import TemplateSwitcherFab from './components/TemplateSwitcherFab.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { getApm } from '../modules/tracing.js';
 
@@ -42,7 +43,10 @@ export function mountReactApp(container) {
         root.render(
             <ErrorBoundary>
                 <TemplateProvider>
-                    <App />
+                    <>
+                        <App />
+                        <TemplateSwitcherFab />
+                    </>
                 </TemplateProvider>
             </ErrorBoundary>
         );
