@@ -9,7 +9,12 @@
  * All queries are template-aware (can filter by state if template has stateName)
  */
 
-import { fetchElasticsearchSearch, fetchElasticsearchUpdate, fetchESQLQuery } from './elasticApi.js';
+import {
+    fetchElasticsearchSearch,
+    fetchElasticsearchSearchWithAgent,
+    fetchElasticsearchUpdate,
+    fetchESQLQuery,
+} from './elasticApi.js';
 
 /**
  * Search scholarships by major/keyword using RRF (Reciprocal Rank Fusion)
@@ -565,6 +570,223 @@ export async function getFraudRecipientDetail(medicaidRecipientId, agentId = 'ok
             return [];
         }
         console.error('Fraud recipient detail query error:', error);
+        throw error;
+    }
+}
+
+/** First non-empty field from object (multiple possible ES field names). */
+function grantField(obj, ...keys) {
+    if (!obj) return null;
+    for (const k of keys) {
+        const v = obj[k];
+        if (v != null && v !== '') return v;
+    }
+    return null;
+}
+
+/** Normalize _source hit into StateAgencyGrantsSearch row shape (flexible field names). */
+function mapElasticsearchGrantHitToRow(hit) {
+    const s = hit._source || {};
+    const id = hit._id || grantField(s, 'Portal_ID', 'portal_id', 'Grant_Program_ID', 'grant_program_id', 'id', 'grant_id');
+    const title =
+        grantField(s, 'Grant_Title', 'grant_title', 'Title', 'title', 'name', 'Grant_Name') || 'Untitled opportunity';
+    const description =
+        grantField(s, 'Purpose', 'Description', 'description', 'grant_details', 'Details', 'details') || '';
+    const agencyRaw = grantField(
+        s,
+        'State_Agency',
+        'state_agency',
+        'Agency',
+        'agency',
+        'Department',
+        'Grantor',
+        'grantor'
+    );
+    const parseDateVal = (val) => {
+        if (val == null || val === '') return '';
+        if (typeof val === 'number') {
+            const d = new Date(val);
+            return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+        }
+        const str = String(val);
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+        const d = new Date(str);
+        return Number.isNaN(d.getTime()) ? str : d.toISOString().slice(0, 10);
+    };
+    const deadline = parseDateVal(
+        grantField(s, 'Deadline', 'deadline', 'Application_Deadline', 'application_deadline', 'Close_Date', 'close_date')
+    );
+    const openDate = parseDateVal(
+        grantField(s, 'Open_Date', 'open_date', 'Posted_Date', 'posted_date', 'Published_Date', '@timestamp')
+    );
+    const matchRaw = grantField(
+        s,
+        'Match_Funding',
+        'match_funding',
+        'Match_Required_Pct',
+        'match_required_pct',
+        'Match_Funding_Required'
+    );
+    const matchFunding = matchRaw != null && matchRaw !== '' ? String(matchRaw) : 'No';
+    const estRaw = grantField(
+        s,
+        'Estimated_Total_Funding',
+        'estimated_total_funding',
+        'Total_Funding',
+        'total_funding',
+        'Estimated_Funding'
+    );
+    let estimatedTotal = null;
+    if (estRaw != null && estRaw !== '') {
+        const n = Number(estRaw);
+        estimatedTotal = Number.isFinite(n) ? n : null;
+    }
+    const rangeLowHigh =
+        grantField(s, 'Estimated_Low_High', 'estimated_low_high', 'Funding_Range', 'Award_Range', 'award_range') ||
+        'Dependent';
+    const disbRaw = grantField(
+        s,
+        'Funds_Disbursement',
+        'funds_disbursement',
+        'Disbursement_Method',
+        'disbursement_method',
+        'disbursement'
+    );
+    const dr = String(disbRaw || '').toLowerCase();
+    let disbursementMethod = '';
+    if (dr.includes('reimburs') && dr.includes('advance')) disbursementMethod = 'mixed';
+    else if (dr.includes('reimburs')) disbursementMethod = 'reimbursement';
+    else if (dr.includes('advance')) disbursementMethod = 'advance';
+
+    const statusRaw = String(
+        grantField(s, 'Status', 'status', 'Opportunity_Status', 'opportunity_status', 'Grant_Status', 'grant_status') || ''
+    ).toLowerCase();
+    let status = 'active';
+    if (statusRaw.includes('forecast')) status = 'forecasted';
+    else if (statusRaw.includes('closed') || statusRaw.includes('close')) status = 'closed';
+    else if (statusRaw.includes('active') || statusRaw.includes('open')) status = 'active';
+
+    const typeStr = String(grantField(s, 'Opportunity_Type', 'opportunity_type', 'type') || '').toLowerCase();
+    const isLoan = typeStr.includes('loan');
+    const matchRequired =
+        String(matchFunding).toLowerCase() !== 'no' &&
+        matchFunding !== '0' &&
+        matchFunding !== '' &&
+        !String(matchFunding).toLowerCase().includes('no match');
+
+    const pa = grantField(s, 'Post_Award_Info', 'post_award_info', 'Has_Post_Award', 'has_post_award');
+    const postAwardInfo =
+        pa === true ||
+        pa === 'true' ||
+        pa === 1 ||
+        String(pa || '')
+            .toLowerCase()
+            .includes('yes');
+
+    const code = grantField(s, 'Agency_Code', 'agency_code', 'agency_slug');
+    let agency = code ? String(code).toLowerCase().replace(/\s+/g, '_') : '';
+    const str = String(agencyRaw || '').toLowerCase();
+    if (!agency) {
+        const needles = [
+            ['commerce', 'commerce'],
+            ['transport', 'transport'],
+            ['agriculture', 'agriculture'],
+            ['education', 'education'],
+            ['health', 'health'],
+            ['housing', 'housing'],
+        ];
+        for (const [needle, val] of needles) {
+            if (str.includes(needle)) {
+                agency = val;
+                break;
+            }
+        }
+    }
+
+    const catRaw = grantField(s, 'Category', 'category', 'Funding_Category', 'funding_category');
+    const catStr = String(catRaw || '').toLowerCase();
+    let category = '';
+    const catMap = [
+        ['economic', 'economic'],
+        ['infrastructure', 'infrastructure'],
+        ['education', 'education'],
+        ['environment', 'environment'],
+        ['health', 'health'],
+        ['workforce', 'workforce'],
+        ['labor', 'workforce'],
+        ['housing', 'economic'],
+    ];
+    for (const [needle, val] of catMap) {
+        if (catStr.includes(needle)) {
+            category = val;
+            break;
+        }
+    }
+
+    const appRaw = grantField(
+        s,
+        'Eligible_Applicant',
+        'eligible_applicant',
+        'Applicant_Type',
+        'applicant_type'
+    );
+    const appStr = String(appRaw || '').toLowerCase();
+    let eligibleApplicant = '';
+    if (appStr.includes('business')) eligibleApplicant = 'business';
+    else if (appStr.includes('nonprofit') || appStr.includes('non-profit')) eligibleApplicant = 'nonprofit';
+    else if (appStr.includes('public') || appStr.includes('local government')) eligibleApplicant = 'public';
+    else if (appStr.includes('tribal')) eligibleApplicant = 'tribal';
+    else if (appStr.includes('individual')) eligibleApplicant = 'individual';
+
+    return {
+        id: String(id || hit._id || Math.random().toString(36).slice(2)),
+        title,
+        description,
+        agency,
+        agencyDisplay: agencyRaw || agency || '—',
+        category,
+        eligibleApplicant,
+        disbursementMethod,
+        deadline: deadline || openDate,
+        openDate: openDate || deadline,
+        matchFunding,
+        estimatedTotal,
+        rangeLowHigh,
+        status,
+        postAwardInfo,
+        isLoan,
+        matchRequired,
+    };
+}
+
+/**
+ * Load grant opportunities from ok-grant-data (gawdzilla ES) for the State Agency grants UI.
+ *
+ * @param {Object} [template] - Current template; uses template.elastic.grantsDataIndex / grantsDataAgentId / grantsSearchSize
+ * @returns {Promise<Array<Object>>} Rows for StateAgencyGrantsSearch; empty array on 404 or error (caller may fall back)
+ */
+export async function getOkGrantDataCatalog(template = {}) {
+    const elastic = template.elastic || {};
+    const index = elastic.grantsDataIndex || 'ok-grant-data';
+    const agentId = elastic.grantsDataAgentId || 'ok-fraud';
+    const size = Math.min(Math.max(1, Number(elastic.grantsSearchSize) || 2000), 10000);
+
+    const queryBody = {
+        query: { match_all: {} },
+        size,
+        sort: [{ _doc: 'asc' }],
+    };
+
+    try {
+        const result = await fetchElasticsearchSearchWithAgent(index, queryBody, agentId);
+        const hits = result.hits?.hits || [];
+        return hits.map((hit) => mapElasticsearchGrantHitToRow(hit));
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn(`Grant index "${index}" not found (404). Grants search will fall back if configured.`);
+            return [];
+        }
+        console.error('getOkGrantDataCatalog error:', error);
         throw error;
     }
 }

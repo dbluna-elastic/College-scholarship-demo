@@ -1,28 +1,33 @@
 ---
-description: Docker configuration and containerization standards
-globs: Dockerfile, docker-compose.yml, nginx.conf
+description: Docker rebuild discipline and containerization standards
+alwaysApply: true
 ---
 
 # Docker Standards
 
-## Build Strategy
-- Use **Multi-stage builds** to keep image sizes small.
-- Base image must be `node:20-alpine` (or newer) for builds.
-- Serve via `nginx:stable-alpine`.
+## Always rebuild the container when needed
 
-## Environment Variables
-- Do NOT hardcode `.env` values in the Dockerfile.
-- Use `env_file` in `docker-compose.yml` to inject secrets.
+When any change affects what runs in Docker (application source, `public/`, `vite.config.js`, `nginx.conf`, `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh`, or `.env` keys read at runtime), **do not** only suggest a rebuild—**run** it unless the user explicitly asked for code-only work.
 
-## Proxy Sync
-- If a new proxy route is added to `vite.config.js`, the AI MUST remind the user to update `nginx.conf` to match, or the production build will fail.
+From the project root:
 
-## Container Rebuild & Restart
-- **ALWAYS** rebuild and restart the Docker container after making any code changes, configuration updates, or template modifications.
-- After any changes, run:
-  ```bash
-  docker-compose down
-  docker-compose build
-  docker-compose up -d
-  ```
-- This ensures all changes are properly applied and the container is running with the latest code.
+```bash
+docker compose up --build -d
+```
+
+The image build stage runs `npm run build`, so this picks up new frontend bundles. For a quick local check without Docker, `npm run build` is optional.
+
+If the user asks to reload, deploy, or verify the containerized app after edits, include `docker compose up --build -d` (or full down/build/up if they need a clean slate).
+
+## Build strategy
+
+- Use **multi-stage** builds; build with `node:20-alpine` (or newer), serve with `nginx:stable-alpine`.
+
+## Environment variables
+
+- Do **not** hardcode `.env` secrets in the Dockerfile.
+- Use `env_file` in [docker-compose.yml](docker-compose.yml) to inject secrets.
+
+## Proxy sync
+
+- If a new dev proxy route is added in `vite.config.js`, mirror it in `nginx.conf` where relevant, or production/nginx routing will not match dev.

@@ -140,6 +140,69 @@ export async function fetchESQLQuery(query, params = {}, agentId = '') {
 }
 
 /**
+ * Elasticsearch _search via the ok-fraud (gawdzilla) proxy — same cluster as ok-fraud ESQL.
+ *
+ * @param {string} index - Index name (e.g. ok-grant-data)
+ * @param {Object} queryBody - Request body for _search
+ * @param {string} [agentId='ok-fraud'] - Must be ok-fraud for OK_ELASTIC_ES_URL proxy path
+ * @returns {Promise<Object>} Parsed JSON response
+ */
+export async function fetchElasticsearchSearchWithAgent(index, queryBody, agentId = 'ok-fraud') {
+    if (agentId !== 'ok-fraud') {
+        throw new Error('fetchElasticsearchSearchWithAgent currently supports agentId ok-fraud only');
+    }
+    const apiKey = getApiKeyForAgent(agentId);
+    if (!apiKey) {
+        throw new Error('OK_KIBANA_API_KEY (or ELASTIC_API_KEY) is required for ok-grant-data search');
+    }
+
+    const maskedKey = maskValue(apiKey);
+    console.log('Elasticsearch search (ok cluster):', {
+        index,
+        apiKey: maskedKey,
+    });
+
+    try {
+        const response = await tracedFetch(`/api/elastic/ok-fraud/es/${encodeURIComponent(index)}/_search`, {
+            method: 'POST',
+            headers: createAuthHeaders(false, agentId),
+            body: JSON.stringify(queryBody),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            const isIndexNotFound = response.status === 404;
+            console.error('Elasticsearch search (ok cluster) failed:', {
+                status: response.status,
+                index,
+                isIndexNotFound,
+                error: errorText.substring(0, 200),
+            });
+            const error = new Error(`Elasticsearch search failed: ${response.status} ${response.statusText}`);
+            error.status = response.status;
+            error.isIndexNotFound = isIndexNotFound;
+            error.index = index;
+            throw error;
+        }
+
+        const data = await response.json();
+        console.log('Elasticsearch search (ok cluster) ok:', {
+            index,
+            hits: data.hits?.total?.value ?? data.hits?.total ?? 0,
+        });
+        return data;
+    } catch (error) {
+        if (error.status === undefined) {
+            error.status = error.status || 500;
+            error.isIndexNotFound = false;
+            error.index = index;
+        }
+        console.error('Elasticsearch search (ok cluster) error:', { index, message: error.message });
+        throw error;
+    }
+}
+
+/**
  * Sends a chat message to Elastic Agent Builder
  * 
  * @param {string} agentId - Agent ID from template or environment

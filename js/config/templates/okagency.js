@@ -1,21 +1,17 @@
 /**
- * Oklahoma Agency–style State Agency Template
- * High-impact, professional business/government layout:
- * Overlay header on hero, blue CTA bar, green feature banner, white main content, floating chatbot.
- * Design: Deep Navy, Forest Green, Slate Gray, Sky Blue accents; clean sans-serif.
+ * Oklahoma Agency–style State Agency Template (okagency).
+ * Public landing: grants search (faceted search + results table). After login (password test): company match grants dashboard.
  */
 export const okagencyTemplate = {
     id: 'okagency',
     name: 'State Agency',
 
-    // Branding (Oklahoma Agency)
     branding: {
         institutionName: 'Oklahoma Agency',
         tagline: 'Building businesses and communities.',
         logo: '/logo-okagency.svg',
     },
 
-    // Header: overlay on hero, sticky with solid background on scroll
     header: {
         overlay: true,
         sticky: true,
@@ -23,7 +19,6 @@ export const okagencyTemplate = {
         menuLabel: 'MENU',
     },
 
-    // Content
     content: {
         heroTitle: 'Building Businesses and Communities',
         heroSubtitle: 'Learn more about what makes Oklahoma the land of opportunity.',
@@ -32,45 +27,120 @@ export const okagencyTemplate = {
         stateName: 'Oklahoma',
         stateAbbreviation: 'OK',
         welcomeMessage: 'Welcome to the State Agency Portal',
-        // Blue bar (between hero and body)
         blueBar: {
             newsletterText: 'Sign up for our Newsletter',
             scrollPromptText: 'Scroll to learn more',
             sidebarIcons: ['email', 'document'],
         },
-        // Green feature banner (secondary hero / strategic plan CTA)
         promoBar: {
             text: 'Click here for information on Oklahoma\'s Strategic Plan for Economic & Community Development',
             href: '#strategic-plan',
         },
-        // Main content area (white): H2 + tagline
         mainHeading: 'North America\'s Central Location for Business',
         mainTagline: 'A GLOBAL VISION WITH A LOCAL FOCUS',
-        // Floating chatbot bubble copy
         chatBubbleText: 'Can I help you find something?',
+        grantsSearch: {
+            pageTitle: 'Find grants',
+            intro:
+                'Search state grant opportunities. Use keywords and filters to narrow results. Live listings load from the grant index when available.',
+            keywordLabel: 'Keyword search',
+            keywordHint: 'Search titles and descriptions (e.g. workforce, broadband, small business).',
+            keywordPlaceholder: 'What are you looking for?',
+            refineHeading: 'Refine results',
+            statusHeading: 'Show',
+            statusForecasted: 'Forecasted',
+            statusActive: 'Active',
+            statusClosed: 'Closed',
+            postAwardLabel: 'Post-award information only',
+            postAwardHint: 'Limit to opportunities with post-award reporting details.',
+            excludeLoansLabel: 'Do not show loan opportunities',
+            excludeMatchLabel: 'Do not show opportunities requiring matched funding',
+            filterAgencyLabel: 'Agency',
+            filterCategoryLabel: 'Category',
+            filterApplicantLabel: 'Eligible applicant',
+            filterDisbursementLabel: 'Disbursement method',
+            filterAny: 'Any',
+            applyFilters: 'Apply filters',
+            resetFilters: 'Reset',
+            resultsHeading: 'Results',
+            displayRange: 'Displaying {start} – {end} of {total}',
+            perPageLabel: 'Per page',
+            saveSearch: 'Save current search',
+            applySaved: 'Apply saved search',
+            clearSaved: 'Clear saved',
+            savedToast: 'Search saved for your next visit.',
+            clearedToast: 'Saved search removed.',
+            glossaryLabel: 'Glossary',
+            glossaryHref: '#glossary',
+            faqLabel: 'FAQ',
+            faqHref: '#faq',
+            helpfulResources: 'Helpful resources',
+            colDeadline: 'Deadline',
+            colTitle: 'Grant title',
+            colOpenDate: 'Open date',
+            colAgency: 'Agency',
+            colMatch: 'Match funding?',
+            colEstimated: 'Est. total funding',
+            colRange: 'Est. low / high',
+            colDisbursement: 'Funds disbursement',
+            statusLabelForecasted: 'Forecasted',
+            statusLabelActive: 'Active',
+            statusLabelClosed: 'Closed',
+            prevPage: 'Previous',
+            nextPage: 'Next',
+            noResults: 'No grants match your criteria. Try adjusting filters or keywords.',
+            loadingResults: 'Loading opportunities…',
+            fallbackNotice:
+                'Showing sample data because the grant index was unavailable or returned no rows.',
+        },
+        dashboard: {
+            pageTitle: 'Company Match Grants',
+            pageSubtitle:
+                'Monitor open applications, approved state match amounts, and reporting milestones for your organization.',
+            heroHeading: 'Your company dashboard',
+            alertBar:
+                'Q2 match-grant round: letters of intent accepted through the date shown on your dashboard.',
+            kpiOpenLabel: 'Open applications',
+            kpiOpenValue: '2',
+            kpiOpenHint: 'Awaiting agency review',
+            kpiApprovedLabel: 'Approved state match (YTD)',
+            kpiApprovedValue: '$325K',
+            kpiApprovedHint: 'Paired with private match',
+            kpiDisbursedLabel: 'Disbursed to date',
+            kpiDisbursedValue: '$150K',
+            kpiNextLabel: 'Next milestone',
+            kpiNextValue: 'Apr 15',
+            kpiNextHint: 'LOI deadline — Q2 round',
+            tableTitle: 'Match grant applications',
+            newApplicationCta: 'Start new application',
+            tableFootnote:
+                'Sample data for demonstration. Amounts and statuses are illustrative; official records are maintained by the agency.',
+            deadlinesTitle: 'Upcoming deadlines',
+            resourcesTitle: 'Program resources',
+            resourcesBody:
+                'Match ratios, eligible expenses, and compliance reporting differ by program. Always use the current published guidelines before applying.',
+            resourcesCta: 'View guidelines',
+        },
     },
 
-    // Design palette: Deep Navy, Forest Green, Slate Gray, Sky Blue (Oklahoma Agency)
     colors: {
-        primary: '#003366',       // Deep Navy Blue
-        secondary: '#2E7D32',      // Forest Green
-        accent: '#0ea5e9',         // Sky Blue (taglines, links)
-        slate: '#475569',          // Slate Gray
-        charcoal: '#1e293b',       // Dark gray/charcoal for headings
+        primary: '#003366',
+        secondary: '#2E7D32',
+        accent: '#0ea5e9',
+        slate: '#475569',
+        charcoal: '#1e293b',
         warning: '#FF4F00',
         bgBase: '#0B0B0B',
         bgSurface: '#161616',
         white: '#ffffff',
     },
 
-    // Typography: clean sans-serif (Montserrat / Open Sans style)
     typography: {
         fontFamily: '"Open Sans", "Montserrat", Inter, -apple-system, BlinkMacSystemFont, sans-serif',
         headingWeight: '700',
         headingTracking: '-0.02em',
     },
 
-    // Navigation - Agency-style links (used in menu / nav)
     navigation: {
         links: [
             { label: 'Business Services', href: '#business' },
@@ -82,7 +152,6 @@ export const okagencyTemplate = {
         ],
     },
 
-    // Hero Section (overlay header on top; scroll indicator bottom-left)
     hero: {
         backgroundImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1920&q=80',
         mainHeading: 'Building Businesses and Communities',
@@ -94,7 +163,6 @@ export const okagencyTemplate = {
         },
     },
 
-    // Footer
     footer: {
         address: '123 State Capitol Boulevard, Oklahoma City, OK 73102',
         phone: '(555) 123-4567',
@@ -116,6 +184,10 @@ export const okagencyTemplate = {
 
     elastic: {
         agentId: null,
+        /** Find Grants results: _search on gawdzilla (ok-fraud proxy + OK_KIBANA_API_KEY) */
+        grantsDataIndex: 'ok-grant-data',
+        grantsDataAgentId: 'ok-fraud',
+        grantsSearchSize: 2000,
     },
 
     search: {
@@ -142,5 +214,72 @@ export const okagencyTemplate = {
             description: 'Partnership with local colleges will train workers for high-demand industries.',
             image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=80',
         },
+    ],
+
+    grantsFilterOptions: {
+        agencies: [
+            { value: '', label: 'Any agency' },
+            { value: 'commerce', label: 'Department of Commerce' },
+            { value: 'transport', label: 'Department of Transportation' },
+            { value: 'agriculture', label: 'Department of Agriculture' },
+            { value: 'education', label: 'Department of Education' },
+            { value: 'health', label: 'Department of Health' },
+            { value: 'housing', label: 'Housing & Community Development' },
+        ],
+        categories: [
+            { value: '', label: 'Any category' },
+            { value: 'economic', label: 'Economic development' },
+            { value: 'infrastructure', label: 'Infrastructure' },
+            { value: 'education', label: 'Education' },
+            { value: 'environment', label: 'Environment & water' },
+            { value: 'health', label: 'Health & human services' },
+            { value: 'workforce', label: 'Employment & training' },
+        ],
+        eligibleApplicants: [
+            { value: '', label: 'Any applicant' },
+            { value: 'business', label: 'Business' },
+            { value: 'nonprofit', label: 'Nonprofit' },
+            { value: 'public', label: 'Public agency' },
+            { value: 'tribal', label: 'Tribal government' },
+            { value: 'individual', label: 'Individual' },
+        ],
+        disbursementMethods: [
+            { value: '', label: 'Any method' },
+            { value: 'reimbursement', label: 'Reimbursement(s)' },
+            { value: 'advance', label: 'Advance(s)' },
+            { value: 'mixed', label: 'Advances & reimbursement(s)' },
+        ],
+    },
+
+    /**
+     * Demo catalog for grants search UI. Replace with API/Elasticsearch later if needed.
+     * Fields align with StateAgencyGrantsSearch table and filter pipeline.
+     */
+    grantsCatalog: [
+        { id: 'g1', title: 'Rural Broadband Expansion Fund', description: 'Fiber and fixed wireless for underserved communities.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: true, matchFunding: '25%', agency: 'commerce', category: 'infrastructure', eligibleApplicant: 'public', disbursementMethod: 'reimbursement', deadline: '2026-05-15', openDate: '2026-01-10', estimatedTotal: 12000000, rangeLowHigh: '$50K – $500K' },
+        { id: 'g2', title: 'Small Business Innovation Voucher', description: 'Matched funding for R&D partnerships with local firms.', status: 'active', postAwardInfo: false, isLoan: false, matchRequired: true, matchFunding: '50%', agency: 'commerce', category: 'economic', eligibleApplicant: 'business', disbursementMethod: 'mixed', deadline: '2026-04-20', openDate: '2025-11-01', estimatedTotal: 3500000, rangeLowHigh: '$25K – $150K' },
+        { id: 'g3', title: 'Main Street Revitalization Grant', description: 'Façade improvement and downtown placemaking.', status: 'forecasted', postAwardInfo: false, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'commerce', category: 'economic', eligibleApplicant: 'nonprofit', disbursementMethod: 'reimbursement', deadline: '2026-08-01', openDate: '2026-03-01', estimatedTotal: null, rangeLowHigh: 'Dependent' },
+        { id: 'g4', title: 'Workforce Training Reimbursement', description: 'Tuition and certification for in-demand occupations.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'education', category: 'workforce', eligibleApplicant: 'business', disbursementMethod: 'reimbursement', deadline: '2026-06-30', openDate: '2026-02-01', estimatedTotal: 8000000, rangeLowHigh: '$10K – $200K' },
+        { id: 'g5', title: 'Clean Water Infrastructure Loan', description: 'Low-interest loan for municipal water systems.', status: 'active', postAwardInfo: false, isLoan: true, matchRequired: false, matchFunding: 'No', agency: 'health', category: 'environment', eligibleApplicant: 'public', disbursementMethod: 'advance', deadline: '2026-05-01', openDate: '2025-09-15', estimatedTotal: 25000000, rangeLowHigh: '$500K – $5M' },
+        { id: 'g6', title: 'Agricultural Conservation Cost-Share', description: 'Soil health and water quality practices on working lands.', status: 'closed', postAwardInfo: true, isLoan: false, matchRequired: true, matchFunding: '75%', agency: 'agriculture', category: 'environment', eligibleApplicant: 'business', disbursementMethod: 'reimbursement', deadline: '2025-12-01', openDate: '2025-04-01', estimatedTotal: 4200000, rangeLowHigh: 'Dependent' },
+        { id: 'g7', title: 'Community Health Clinic Expansion', description: 'Capital grants for rural clinic capacity.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'health', category: 'health', eligibleApplicant: 'nonprofit', disbursementMethod: 'mixed', deadline: '2026-07-12', openDate: '2026-01-20', estimatedTotal: 15000000, rangeLowHigh: '$200K – $2M' },
+        { id: 'g8', title: 'Transit Zero-Emission Fleet Pilot', description: 'Electric buses and charging for regional systems.', status: 'forecasted', postAwardInfo: false, isLoan: false, matchRequired: true, matchFunding: '20%', agency: 'transport', category: 'infrastructure', eligibleApplicant: 'public', disbursementMethod: 'advance', deadline: '2026-09-01', openDate: '2026-04-01', estimatedTotal: null, rangeLowHigh: '$1M – $8M' },
+        { id: 'g9', title: 'Early Literacy Classroom Materials', description: 'Books and curriculum supports for Title I schools.', status: 'active', postAwardInfo: false, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'education', category: 'education', eligibleApplicant: 'public', disbursementMethod: 'reimbursement', deadline: '2026-04-05', openDate: '2026-01-05', estimatedTotal: 2200000, rangeLowHigh: '$5K – $75K' },
+        { id: 'g10', title: 'Affordable Housing Tax Credit Bridge', description: 'Gap financing for qualified low-income housing.', status: 'active', postAwardInfo: true, isLoan: true, matchRequired: false, matchFunding: 'No', agency: 'housing', category: 'economic', eligibleApplicant: 'business', disbursementMethod: 'advance', deadline: '2026-05-22', openDate: '2025-10-01', estimatedTotal: 45000000, rangeLowHigh: 'Dependent' },
+        { id: 'g11', title: 'Historic Preservation Matching Grant', description: 'Restore publicly significant structures.', status: 'closed', postAwardInfo: true, isLoan: false, matchRequired: true, matchFunding: '100%', agency: 'commerce', category: 'economic', eligibleApplicant: 'nonprofit', disbursementMethod: 'reimbursement', deadline: '2025-11-15', openDate: '2025-05-01', estimatedTotal: 900000, rangeLowHigh: '$25K – $250K' },
+        { id: 'g12', title: 'STEM Teacher Stipend Program', description: 'Recruitment bonuses for high-need districts.', status: 'forecasted', postAwardInfo: false, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'education', category: 'education', eligibleApplicant: 'public', disbursementMethod: 'advance', deadline: '2026-10-01', openDate: '2026-06-01', estimatedTotal: null, rangeLowHigh: 'Dependent' },
+        { id: 'g13', title: 'Wildfire Mitigation Community Fund', description: 'Defensible space and fuel reduction projects.', status: 'active', postAwardInfo: false, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'agriculture', category: 'environment', eligibleApplicant: 'public', disbursementMethod: 'reimbursement', deadline: '2026-03-30', openDate: '2025-12-01', estimatedTotal: 6000000, rangeLowHigh: '$50K – $400K' },
+        { id: 'g14', title: 'Export Readiness Technical Assistance', description: 'Counseling for small businesses entering export markets.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'commerce', category: 'economic', eligibleApplicant: 'business', disbursementMethod: 'reimbursement', deadline: '2026-08-15', openDate: '2026-02-15', estimatedTotal: 1800000, rangeLowHigh: '$5K – $40K' },
+        { id: 'g15', title: 'County Bridge Safety Improvement', description: 'Structurally deficient bridge replacements.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: true, matchFunding: '10%', agency: 'transport', category: 'infrastructure', eligibleApplicant: 'public', disbursementMethod: 'mixed', deadline: '2026-12-01', openDate: '2025-08-01', estimatedTotal: 55000000, rangeLowHigh: '$500K – $12M' },
+        { id: 'g16', title: 'Food Bank Cold Storage Upgrade', description: 'Refrigeration capacity for regional distributors.', status: 'closed', postAwardInfo: true, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'health', category: 'health', eligibleApplicant: 'nonprofit', disbursementMethod: 'reimbursement', deadline: '2025-09-30', openDate: '2025-03-01', estimatedTotal: 4000000, rangeLowHigh: '$75K – $500K' },
+        { id: 'g17', title: 'Apprenticeship Expansion Incentive', description: 'Employer incentives for registered apprenticeship slots.', status: 'active', postAwardInfo: false, isLoan: false, matchRequired: true, matchFunding: '33%', agency: 'commerce', category: 'workforce', eligibleApplicant: 'business', disbursementMethod: 'reimbursement', deadline: '2026-06-01', openDate: '2026-01-01', estimatedTotal: 9500000, rangeLowHigh: 'Dependent' },
+        { id: 'g18', title: 'Municipal Solar Feasibility Study', description: 'Planning grants for city-owned solar assessments.', status: 'forecasted', postAwardInfo: false, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'commerce', category: 'environment', eligibleApplicant: 'public', disbursementMethod: 'advance', deadline: '2026-11-01', openDate: '2026-05-01', estimatedTotal: null, rangeLowHigh: '$25K – $100K' },
+        { id: 'g19', title: 'Tribal Broadband Planning Grant', description: 'Planning and engineering for tribal connectivity projects.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'commerce', category: 'infrastructure', eligibleApplicant: 'tribal', disbursementMethod: 'mixed', deadline: '2026-04-28', openDate: '2025-12-10', estimatedTotal: 3200000, rangeLowHigh: '$100K – $400K' },
+        { id: 'g20', title: 'Individual Artist Fellowship', description: 'Creative project grants for resident artists.', status: 'closed', postAwardInfo: false, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'commerce', category: 'economic', eligibleApplicant: 'individual', disbursementMethod: 'advance', deadline: '2025-10-01', openDate: '2025-04-15', estimatedTotal: 600000, rangeLowHigh: '$2K – $15K' },
+        { id: 'g21', title: 'School Nutrition Equipment', description: 'Kitchen upgrades for K-12 meal programs.', status: 'active', postAwardInfo: false, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'education', category: 'education', eligibleApplicant: 'public', disbursementMethod: 'reimbursement', deadline: '2026-07-01', openDate: '2026-02-01', estimatedTotal: 5000000, rangeLowHigh: '$10K – $150K' },
+        { id: 'g22', title: 'Regional Economic Recovery Loan', description: 'Working capital loan pool for disaster-impacted SMEs.', status: 'active', postAwardInfo: false, isLoan: true, matchRequired: false, matchFunding: 'No', agency: 'commerce', category: 'economic', eligibleApplicant: 'business', disbursementMethod: 'advance', deadline: '2026-09-15', openDate: '2025-07-01', estimatedTotal: 20000000, rangeLowHigh: 'Dependent' },
+        { id: 'g23', title: 'Stream Restoration Partnership', description: 'Riparian buffer and habitat restoration.', status: 'forecasted', postAwardInfo: false, isLoan: false, matchRequired: true, matchFunding: '40%', agency: 'agriculture', category: 'environment', eligibleApplicant: 'nonprofit', disbursementMethod: 'reimbursement', deadline: '2027-01-15', openDate: '2026-07-01', estimatedTotal: null, rangeLowHigh: '$75K – $1M' },
+        { id: 'g24', title: 'Public Library Digital Inclusion', description: 'Devices and hotspots for library patrons.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'education', category: 'education', eligibleApplicant: 'public', disbursementMethod: 'reimbursement', deadline: '2026-05-30', openDate: '2026-01-25', estimatedTotal: 2800000, rangeLowHigh: '$15K – $120K' },
+        { id: 'g25', title: 'Mobile Crisis Unit Equipment', description: 'Vehicles and telehealth kits for behavioral health response.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: true, matchFunding: '15%', agency: 'health', category: 'health', eligibleApplicant: 'public', disbursementMethod: 'mixed', deadline: '2026-08-30', openDate: '2026-03-10', estimatedTotal: 11000000, rangeLowHigh: '$250K – $1.5M' },
     ],
 };

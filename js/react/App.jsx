@@ -19,6 +19,8 @@ import StudentDashboard from './components/StudentDashboard.jsx';
 import CounselorDashboard from './components/CounselorDashboard.jsx';
 import MentalHealthFraudDashboard from './components/MentalHealthFraudDashboard.jsx';
 import FraudRecipientDetail from './components/FraudRecipientDetail.jsx';
+import OkCommerceCompanyDashboard from './components/OkCommerceCompanyDashboard.jsx';
+import StateAgencyGrantsSearch from './components/StateAgencyGrantsSearch.jsx';
 import { getApm, setUserContext, clearUserContext } from '../modules/tracing.js';
 
 function App() {
@@ -34,10 +36,9 @@ function App() {
         console.log('⚛️ React App mounted with template:', template?.name);
     }, [template]);
 
-    // Okagency: sticky header gains solid background on scroll
+    // Agency hero overlay: header becomes solid on scroll (okmentalhealth only; okagency uses solid grants search header)
     useEffect(() => {
-        const agencyOverlayIds = ['okagency', 'okmentalhealth'];
-        if (!agencyOverlayIds.includes(template?.id)) return;
+        if (template?.id !== 'okmentalhealth') return;
         const onScroll = () => setHeaderScrolled(window.scrollY > 60);
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
@@ -66,7 +67,7 @@ function App() {
         if (password === 'test') {
             setUserRole('student');
             setCampusId(campusId || 'student');
-            setActiveSection('student-dashboard');
+            setActiveSection(template?.id === 'okagency' ? 'commerce-dashboard' : 'student-dashboard');
             setShowLoginModal(false);
             
             // Set user context for RUM
@@ -159,6 +160,10 @@ function App() {
     ];
 
     // Render different sections based on activeSection
+    if (activeSection === 'commerce-dashboard') {
+        return <OkCommerceCompanyDashboard onLogout={handleLogout} campusId={campusId} />;
+    }
+
     if (activeSection === 'student-dashboard') {
         return <StudentDashboard onLogout={handleLogout} campusId={campusId} />;
     }
@@ -263,12 +268,118 @@ function App() {
         );
     }
 
-    // Oklahoma Agency–style layout (okagency, okmentalhealth): overlay header, hero, blue bar, promo bar, white main
+    // Oklahoma agency–style layout (okagency, okmentalhealth): overlay header, hero, blue bar, promo bar, white main
     const isAgencyOverlayLayout = ['okagency', 'okmentalhealth'].includes(template?.id);
     const primaryColor = template?.colors?.primary || '#5D5FEF';
     const secondaryColor = template?.colors?.secondary || '#2E7D32';
     const accentColor = template?.colors?.accent || '#0ea5e9';
     const charcoalColor = template?.colors?.charcoal || '#1e293b';
+
+    if (isAgencyOverlayLayout && template?.id === 'okagency') {
+        return (
+            <div className="w-full min-h-screen bg-white" style={{ fontFamily: template?.typography?.fontFamily }}>
+                <a
+                    href="#grants-search-main"
+                    className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:block focus:h-auto focus:w-auto focus:overflow-visible focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:shadow-lg"
+                >
+                    Skip to grant search
+                </a>
+                <header
+                    className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between px-4 shadow-md md:px-8"
+                    style={{ backgroundColor: primaryColor }}
+                >
+                    <div className="flex items-center gap-3">
+                        <img
+                            src={template.branding?.logo ?? ''}
+                            alt={template.branding?.institutionName ?? ''}
+                            className="h-9 w-auto"
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling?.classList.remove('hidden');
+                            }}
+                        />
+                        <span className="hidden text-lg font-bold text-white">{template.branding?.institutionName ?? 'State Agency'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <button type="button" className="rounded-lg p-2 text-white hover:bg-white/10 transition-colors" aria-label="Search">
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                        <button type="button" className="rounded-lg p-2 text-white hover:bg-white/10 transition-colors" aria-label="Language">
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            className="rounded border border-white/60 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+                        >
+                            {template?.header?.menuLabel ?? 'MENU'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowLoginModal(true)}
+                            className="rounded px-4 py-1.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                        >
+                            Login
+                        </button>
+                    </div>
+                </header>
+
+                <StateAgencyGrantsSearch />
+
+                <footer className="text-white" style={{ backgroundColor: primaryColor }}>
+                    <div className="max-w-7xl mx-auto px-4 py-12">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">{template.branding?.institutionName ?? 'State Agency'}</h3>
+                                <p className="text-white/80 text-sm mb-2">{template.footer?.address ?? ''}</p>
+                                <p className="text-white/80 text-sm">{template.footer?.phone ?? ''}</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">Quick Links</h3>
+                                <ul className="space-y-2">
+                                    {template.footer?.quickLinks?.map((link, i) => (
+                                        <li key={i}>
+                                            <a href={link.href} className="text-white/80 text-sm hover:text-white transition-colors">
+                                                {link.label}
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-4">Connect</h3>
+                                <div className="flex gap-4">
+                                    {template.footer?.socialMedia?.map((s, i) => (
+                                        <a
+                                            key={i}
+                                            href={s.href}
+                                            className="text-white/80 hover:text-white font-semibold"
+                                            aria-label={s.label}
+                                        >
+                                            {s.platform}
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="border-t border-white/20">
+                        <div className="max-w-7xl mx-auto px-4 py-6">
+                            <p className="text-center text-white/70 text-sm">
+                                © 2026 {template.branding?.institutionName ?? 'State Agency'}. All Rights Reserved.
+                            </p>
+                        </div>
+                    </div>
+                </footer>
+
+                <ChatWidget floating={true} />
+                <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
+            </div>
+        );
+    }
 
     if (isAgencyOverlayLayout) {
         return (
