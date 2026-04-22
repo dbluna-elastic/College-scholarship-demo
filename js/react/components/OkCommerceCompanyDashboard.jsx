@@ -7,6 +7,9 @@ import { useContext, useEffect, useState } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import ChatWidget from './ChatWidget.jsx';
 import { getOkGrantDashboardApplications } from '../../modules/utils/esqlQueries.js';
+import OkAgencyPortalHeader from './okagency/OkAgencyPortalHeader.jsx';
+import OkAgencyFooter from './okagency/OkAgencyFooter.jsx';
+import { OKAGENCY_CARD_CLASS, OKAGENCY_PAGE_BG_CLASS } from './okagency/okagencyUi.js';
 
 const DEMO_APPLICATIONS = [
     {
@@ -53,10 +56,7 @@ function formatSubmittedDisplay(value) {
 
 function StatCard({ label, value, hint, primaryColor }) {
     return (
-        <div
-            className="rounded-[32px] border border-black/[0.05] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.06)]"
-            style={{ fontFamily: 'var(--font-family, inherit)' }}
-        >
+        <div className={`${OKAGENCY_CARD_CLASS} p-6`} style={{ fontFamily: 'var(--font-family, inherit)' }}>
             <p className="text-sm font-medium text-slate-500 mb-1">{label}</p>
             <p className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900">{value}</p>
             {hint && (
@@ -131,69 +131,15 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
 
     return (
         <div
-            className="min-h-screen w-full bg-slate-50"
+            className={`min-h-screen w-full ${OKAGENCY_PAGE_BG_CLASS}`}
             style={{ fontFamily: template?.typography?.fontFamily }}
         >
-            <header
-                className="sticky top-0 z-40 border-b border-black/[0.06] bg-white/90 backdrop-blur-xl shadow-sm"
-            >
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
-                    <div className="flex min-w-0 items-center gap-3">
-                        <img
-                            src={template.branding?.logo ?? ''}
-                            alt=""
-                            className="h-9 w-auto shrink-0"
-                            onError={(e) => {
-                                e.target.style.display = 'none';
-                            }}
-                        />
-                        <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {template.branding?.institutionName}
-                            </p>
-                            <p className="truncate text-sm font-bold text-slate-900">{pageTitle}</p>
-                        </div>
-                    </div>
-                    <nav className="hidden items-center gap-1 md:flex">
-                        {template.navigation?.links?.map((link, i) => (
-                            <a
-                                key={i}
-                                href={link.href}
-                                className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                            >
-                                {link.label}
-                            </a>
-                        ))}
-                    </nav>
-                    <div className="flex shrink-0 items-center gap-2">
-                        {campusId && (
-                            <span className="hidden text-sm text-slate-600 sm:inline" title="Signed in account">
-                                {campusId}
-                            </span>
-                        )}
-                        <button
-                            type="button"
-                            className="rounded-full border border-black/[0.08] px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-                            aria-label="Search"
-                        >
-                            <span className="hidden sm:inline">Search</span>
-                            <svg className="mx-auto h-5 w-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </button>
-                        {onLogout && (
-                            <button
-                                type="button"
-                                onClick={onLogout}
-                                className="rounded-full px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                                style={{ backgroundColor: primaryColor }}
-                            >
-                                Logout
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </header>
+            <OkAgencyPortalHeader
+                position="sticky"
+                showNavLinks
+                onLogout={onLogout}
+                campusId={campusId}
+            />
 
             {alertBar && (
                 <div
@@ -252,7 +198,7 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
                                 {dash.newApplicationCta || 'Start new application'}
                             </button>
                         </div>
-                        <div className="overflow-hidden rounded-[32px] border border-black/[0.06] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
+                        <div className={`overflow-hidden ${OKAGENCY_CARD_CLASS}`}>
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[640px] text-left text-sm">
                                     <thead>
@@ -311,7 +257,7 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
                     </section>
 
                     <aside className="flex flex-col gap-6">
-                        <div className="rounded-[32px] border border-black/[0.06] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h3 className="mb-4 text-lg font-extrabold tracking-tighter text-slate-900">
                                 {dash.deadlinesTitle || 'Upcoming deadlines'}
                             </h3>
@@ -328,8 +274,8 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
                         </div>
 
                         <div
-                            className="rounded-[32px] border p-6 text-white shadow-[0_20px_50px_rgba(0,0,0,0.15)]"
-                            style={{ backgroundColor: primaryColor, borderColor: 'rgba(255,255,255,0.12)' }}
+                            className={`${OKAGENCY_CARD_CLASS} border-0 p-6 text-white shadow-md`}
+                            style={{ backgroundColor: primaryColor }}
                         >
                             <h3 className="mb-2 text-lg font-extrabold tracking-tighter">
                                 {dash.resourcesTitle || 'Program resources'}
@@ -359,51 +305,7 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
                 </div>
             </main>
 
-            <footer className="mt-auto text-white" style={{ backgroundColor: primaryColor }}>
-                <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
-                    <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-3">
-                        <div>
-                            <h3 className="mb-4 text-lg font-bold">{template.branding?.institutionName}</h3>
-                            <p className="mb-2 text-sm text-white/80">{template.footer?.address}</p>
-                            <p className="text-sm text-white/80">{template.footer?.phone}</p>
-                        </div>
-                        <div>
-                            <h3 className="mb-4 text-lg font-bold">Quick links</h3>
-                            <ul className="space-y-2">
-                                {template.footer?.quickLinks?.map((link, i) => (
-                                    <li key={i}>
-                                        <a href={link.href} className="text-sm text-white/80 hover:text-white">
-                                            {link.label}
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="mb-4 text-lg font-bold">Connect</h3>
-                            <div className="flex flex-wrap gap-4">
-                                {template.footer?.socialMedia?.map((s, i) => (
-                                    <a
-                                        key={i}
-                                        href={s.href}
-                                        className="text-sm font-semibold text-white/80 hover:text-white"
-                                        aria-label={s.label}
-                                    >
-                                        {s.platform}
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="border-t border-white/20">
-                    <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
-                        <p className="text-center text-sm text-white/70">
-                            © 2026 {template.branding?.institutionName}. All rights reserved.
-                        </p>
-                    </div>
-                </div>
-            </footer>
+            <OkAgencyFooter />
 
             <ChatWidget floating />
         </div>

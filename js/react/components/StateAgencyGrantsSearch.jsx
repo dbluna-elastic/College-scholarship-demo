@@ -5,9 +5,10 @@
  * Results load from template.elastic.grantsDataIndex (e.g. ok-grant-data via ok-fraud ES proxy) when set; otherwise grantsCatalog.
  */
 
-import { useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import { useContext, useEffect, useMemo, useState, useCallback, Fragment } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import { getOkGrantDataCatalog } from '../../modules/utils/esqlQueries.js';
+import { OKAGENCY_CARD_CLASS } from './okagency/okagencyUi.js';
 
 const STORAGE_KEY = 'okagency_grants_saved_search';
 
@@ -69,6 +70,12 @@ export default function StateAgencyGrantsSearch() {
     const [grantsLoading, setGrantsLoading] = useState(() => Boolean(grantsDataIndex));
     const [grantsSource, setGrantsSource] = useState(() => (grantsDataIndex ? 'loading' : 'static'));
 
+    const [draft, setDraft] = useState(() => defaultApplied());
+    const [applied, setApplied] = useState(() => defaultApplied());
+    const [toast, setToast] = useState('');
+    /** Grant row id whose details row is open (single expand at a time) */
+    const [expandedGrantId, setExpandedGrantId] = useState(null);
+
     useEffect(() => {
         let cancelled = false;
         const fb = Array.isArray(template?.grantsCatalog) ? template.grantsCatalog : [];
@@ -120,11 +127,6 @@ export default function StateAgencyGrantsSearch() {
         grantsSource === 'fallback-empty' || grantsSource === 'fallback-error';
     const primaryColor = template?.colors?.primary || '#003366';
     const accentColor = template?.colors?.accent || '#0ea5e9';
-    const charcoal = template?.colors?.charcoal || '#1e293b';
-
-    const [draft, setDraft] = useState(() => defaultApplied());
-    const [applied, setApplied] = useState(() => defaultApplied());
-    const [toast, setToast] = useState('');
 
     const showToast = useCallback((msg) => {
         setToast(msg);
@@ -132,6 +134,7 @@ export default function StateAgencyGrantsSearch() {
     }, []);
 
     const applyFilters = useCallback(() => {
+        setExpandedGrantId(null);
         setApplied({ ...draft, page: 1 });
     }, [draft]);
 
@@ -139,6 +142,7 @@ export default function StateAgencyGrantsSearch() {
         const d = defaultApplied();
         setDraft(d);
         setApplied(d);
+        setExpandedGrantId(null);
     }, []);
 
     const saveSearch = useCallback(() => {
@@ -242,6 +246,10 @@ export default function StateAgencyGrantsSearch() {
     const displayStart = total === 0 ? 0 : startIdx + 1;
     const displayEnd = startIdx + pageRows.length;
 
+    useEffect(() => {
+        setExpandedGrantId(null);
+    }, [effectivePage, applied.pageSize]);
+
     const rangeText = (gs.displayRange || 'Displaying {start} – {end} of {total}')
         .replace('{start}', String(displayStart))
         .replace('{end}', String(displayEnd))
@@ -320,7 +328,7 @@ export default function StateAgencyGrantsSearch() {
 
                 <div className="grid gap-8 lg:grid-cols-12">
                     <aside className="lg:col-span-4">
-                        <div className="rounded-[32px] border border-black/[0.06] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h2 className="mb-4 text-lg font-extrabold tracking-tighter text-slate-900">
                                 {gs.refineHeading || 'Refine results'}
                             </h2>
@@ -471,7 +479,7 @@ export default function StateAgencyGrantsSearch() {
                             </div>
                         </div>
 
-                        <div className="overflow-hidden rounded-[32px] border border-black/[0.06] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
+                        <div className={`overflow-hidden ${OKAGENCY_CARD_CLASS}`}>
                             <div className="overflow-x-auto">
                                 <table className="min-w-[900px] w-full text-left text-sm text-slate-800">
                                     <thead>
@@ -523,30 +531,113 @@ export default function StateAgencyGrantsSearch() {
                                                 const disbLabel =
                                                     filterOpts.disbursementMethods?.find((o) => o.value === g.disbursementMethod)
                                                         ?.label || g.disbursementMethod;
+                                                const categoryLabel =
+                                                    filterOpts.categories?.find((o) => o.value === g.category)?.label ||
+                                                    g.category ||
+                                                    '—';
+                                                const applicantLabel =
+                                                    filterOpts.eligibleApplicants?.find((o) => o.value === g.eligibleApplicant)
+                                                        ?.label || g.eligibleApplicant || '—';
+                                                const yn = (v) => (v ? gs.grantDetailYes || 'Yes' : gs.grantDetailNo || 'No');
+                                                const isExpanded = expandedGrantId === g.id;
                                                 return (
-                                                    <tr key={g.id} className="border-b border-slate-100 last:border-0">
-                                                        <td className="whitespace-nowrap px-3 py-3">
-                                                            <span className="mr-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                                                                {statusLabel}
-                                                            </span>
-                                                            {formatDisplayDate(g.deadline)}
-                                                        </td>
-                                                        <td className="max-w-[220px] px-3 py-3">
-                                                            <span className="font-semibold" style={{ color: charcoal }}>
-                                                                {g.title}
-                                                            </span>
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-3 py-3 text-slate-600">
-                                                            {formatDisplayDate(g.openDate)}
-                                                        </td>
-                                                        <td className="px-3 py-3 text-slate-700">{agencyLabel}</td>
-                                                        <td className="whitespace-nowrap px-3 py-3">{g.matchFunding}</td>
-                                                        <td className="whitespace-nowrap px-3 py-3 font-medium">
-                                                            {formatMoney(g.estimatedTotal)}
-                                                        </td>
-                                                        <td className="px-3 py-3 text-slate-600">{g.rangeLowHigh}</td>
-                                                        <td className="px-3 py-3 text-slate-600">{disbLabel}</td>
-                                                    </tr>
+                                                    <Fragment key={g.id}>
+                                                        <tr className="border-b border-slate-100 last:border-0">
+                                                            <td className="whitespace-nowrap px-3 py-3">
+                                                                <span className="mr-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                                                    {statusLabel}
+                                                                </span>
+                                                                {formatDisplayDate(g.deadline)}
+                                                            </td>
+                                                            <td className="max-w-[min(280px,40vw)] px-3 py-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setExpandedGrantId((id) => (id === g.id ? null : g.id))
+                                                                    }
+                                                                    className="w-full text-left font-semibold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded"
+                                                                    style={{ color: primaryColor }}
+                                                                    aria-expanded={isExpanded}
+                                                                    title={gs.grantTitleExpandHint || 'Show or hide details'}
+                                                                >
+                                                                    <span className="inline align-middle">{g.title}</span>
+                                                                    <span className="ml-1.5 inline text-slate-400 text-xs" aria-hidden>
+                                                                        {isExpanded ? '▾' : '▸'}
+                                                                    </span>
+                                                                </button>
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-3 text-slate-600">
+                                                                {formatDisplayDate(g.openDate)}
+                                                            </td>
+                                                            <td className="px-3 py-3 text-slate-700">{agencyLabel}</td>
+                                                            <td className="whitespace-nowrap px-3 py-3">{g.matchFunding}</td>
+                                                            <td className="whitespace-nowrap px-3 py-3 font-medium">
+                                                                {formatMoney(g.estimatedTotal)}
+                                                            </td>
+                                                            <td className="px-3 py-3 text-slate-600">{g.rangeLowHigh}</td>
+                                                            <td className="px-3 py-3 text-slate-600">{disbLabel}</td>
+                                                        </tr>
+                                                        {isExpanded && (
+                                                            <tr className="border-b border-slate-200 bg-slate-50/90">
+                                                                <td colSpan={8} className="px-4 py-4 text-sm text-slate-700">
+                                                                    <div className="mx-auto max-w-4xl space-y-3">
+                                                                        <div>
+                                                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                                                                                {gs.grantDetailDescription || 'Description'}
+                                                                            </p>
+                                                                            <p className="leading-relaxed text-slate-800">
+                                                                                {g.description?.trim() || '—'}
+                                                                            </p>
+                                                                        </div>
+                                                                        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                                                            <div>
+                                                                                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                                                    {gs.grantDetailCategory || 'Category'}
+                                                                                </dt>
+                                                                                <dd className="mt-0.5 font-medium text-slate-900">
+                                                                                    {categoryLabel}
+                                                                                </dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                                                    {gs.grantDetailEligibleApplicant ||
+                                                                                        'Eligible applicant'}
+                                                                                </dt>
+                                                                                <dd className="mt-0.5 font-medium text-slate-900">
+                                                                                    {applicantLabel}
+                                                                                </dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                                                    {gs.grantDetailPostAward || 'Post-award reporting'}
+                                                                                </dt>
+                                                                                <dd className="mt-0.5 font-medium text-slate-900">
+                                                                                    {yn(g.postAwardInfo)}
+                                                                                </dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                                                    {gs.grantDetailLoan || 'Loan opportunity'}
+                                                                                </dt>
+                                                                                <dd className="mt-0.5 font-medium text-slate-900">
+                                                                                    {yn(g.isLoan)}
+                                                                                </dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                                                    {gs.grantDetailMatchRequired ||
+                                                                                        'Matched funding required'}
+                                                                                </dt>
+                                                                                <dd className="mt-0.5 font-medium text-slate-900">
+                                                                                    {yn(g.matchRequired)}
+                                                                                </dd>
+                                                                            </div>
+                                                                        </dl>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </Fragment>
                                                 );
                                             })
                                         )}

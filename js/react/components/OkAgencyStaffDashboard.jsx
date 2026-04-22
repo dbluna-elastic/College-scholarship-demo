@@ -8,9 +8,13 @@ import { useContext } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import { getSchemaLabels } from '../../config/schemaConfig.js';
 import ChatWidget from './ChatWidget.jsx';
+import OkAgencyPortalHeader from './okagency/OkAgencyPortalHeader.jsx';
+import OkAgencyFooter from './okagency/OkAgencyFooter.jsx';
+import { OKAGENCY_CARD_CLASS, OKAGENCY_PAGE_BG_CLASS } from './okagency/okagencyUi.js';
 
 const HIGH_PRIORITY_ROWS = [
     {
+        businessId: 'prairie-alloy-fabrication-llc',
         business: 'Prairie Alloy Fabrication LLC',
         awardId: 'MG-2026-0142',
         priority: 'Critical',
@@ -19,6 +23,7 @@ const HIGH_PRIORITY_ROWS = [
         financial: 'Match current; reimbursement hold',
     },
     {
+        businessId: 'red-river-manufacturing-llc',
         business: 'Red River Manufacturing LLC',
         awardId: 'MG-2025-0801',
         priority: 'Critical',
@@ -27,6 +32,7 @@ const HIGH_PRIORITY_ROWS = [
         financial: 'Disbursed 72%; renewal match TBD',
     },
     {
+        businessId: 'osage-food-solutions-inc',
         business: 'Osage Food Solutions Inc.',
         awardId: 'MG-2026-0091',
         priority: 'High',
@@ -35,6 +41,7 @@ const HIGH_PRIORITY_ROWS = [
         financial: 'Match verified',
     },
     {
+        businessId: 'tulsa-grid-services-cooperative',
         business: 'Tulsa Grid Services Cooperative',
         awardId: 'MG-2024-2204',
         priority: 'High',
@@ -63,10 +70,10 @@ const CALENDAR_ITEMS = [
 ];
 
 const AT_RISK_LIST = [
-    { name: 'Cherokee Valley Logistics', days: 40 },
-    { name: 'Stillwater Precision Machining', days: 35 },
-    { name: 'Enid Agricultural Co-op', days: 28 },
-    { name: 'Lawton Municipal Utilities Auth.', days: 22 },
+    { businessId: 'cherokee-valley-logistics', name: 'Cherokee Valley Logistics', days: 40 },
+    { businessId: 'stillwater-precision-machining', name: 'Stillwater Precision Machining', days: 35 },
+    { businessId: 'enid-agricultural-co-op', name: 'Enid Agricultural Co-op', days: 28 },
+    { businessId: 'lawton-municipal-utilities-auth', name: 'Lawton Municipal Utilities Auth.', days: 22 },
 ];
 
 const EXPIRING_GRANTS = [
@@ -84,10 +91,38 @@ const PIPELINE_SEGMENTS = [
 ];
 
 const PRIME_CANDIDATES = [
-    { initials: 'PA', name: 'Prairie Alloy Fabrication LLC', eligibility: 94, engagement: '2d ago', profile: '332112 / 48 FTE' },
-    { initials: 'RR', name: 'Red River Manufacturing LLC', eligibility: 91, engagement: '4d ago', profile: '332999 / 120 FTE' },
-    { initials: 'OF', name: 'Osage Food Solutions Inc.', eligibility: 88, engagement: '1w ago', profile: '311421 / 22 FTE' },
-    { initials: 'TG', name: 'Tulsa Grid Services Cooperative', eligibility: 85, engagement: '3d ago', profile: '221122 / regional' },
+    {
+        businessId: 'prairie-alloy-fabrication-llc',
+        initials: 'PA',
+        name: 'Prairie Alloy Fabrication LLC',
+        eligibility: 94,
+        engagement: '2d ago',
+        profile: '332112 / 48 FTE',
+    },
+    {
+        businessId: 'red-river-manufacturing-llc',
+        initials: 'RR',
+        name: 'Red River Manufacturing LLC',
+        eligibility: 91,
+        engagement: '4d ago',
+        profile: '332999 / 120 FTE',
+    },
+    {
+        businessId: 'osage-food-solutions-inc',
+        initials: 'OF',
+        name: 'Osage Food Solutions Inc.',
+        eligibility: 88,
+        engagement: '1w ago',
+        profile: '311421 / 22 FTE',
+    },
+    {
+        businessId: 'tulsa-grid-services-cooperative',
+        initials: 'TG',
+        name: 'Tulsa Grid Services Cooperative',
+        eligibility: 85,
+        engagement: '3d ago',
+        profile: '221122 / regional',
+    },
 ];
 
 function priorityBadgeClass(priority) {
@@ -96,7 +131,7 @@ function priorityBadgeClass(priority) {
     return 'bg-gray-100 text-gray-800';
 }
 
-function OkAgencyStaffDashboard({ onLogout, campusId }) {
+function OkAgencyStaffDashboard({ onLogout, campusId, onBusinessClick }) {
     const template = useContext(TemplateContext);
     const schemaLabels = getSchemaLabels(template);
     const sd = template?.content?.staffDashboard || {};
@@ -139,79 +174,18 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
     ];
 
     return (
-        <div className="w-full min-h-screen bg-white">
-            <header className="bg-[#1a2332] text-white py-2">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex justify-end items-center gap-4 flex-wrap">
-                        <span className="text-sm">{schemaLabels.dashboardStaff}</span>
-                        {campusId && (
-                            <span className="text-sm text-gray-300" title="Signed in account">
-                                {campusId}
-                            </span>
-                        )}
-                        {onLogout && (
-                            <button
-                                type="button"
-                                onClick={onLogout}
-                                className="px-4 py-1.5 text-sm font-medium hover:opacity-80 transition-opacity"
-                            >
-                                Logout
-                            </button>
-                        )}
-                        <button type="button" className="p-1.5 hover:opacity-80 transition-opacity" aria-label="Language">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </header>
+        <div
+            className={`min-h-screen w-full ${OKAGENCY_PAGE_BG_CLASS}`}
+            style={{ fontFamily: template?.typography?.fontFamily }}
+        >
+            <OkAgencyPortalHeader
+                position="sticky"
+                showNavLinks
+                onLogout={onLogout}
+                campusId={campusId}
+            />
 
-            <nav className="bg-white border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex items-center justify-between h-20">
-                        <div className="flex items-center">
-                            <img
-                                src={template.branding.logo}
-                                alt={template.branding.institutionName}
-                                className="h-12 w-auto"
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    const next = e.target.nextSibling;
-                                    if (next) next.style.display = 'block';
-                                }}
-                            />
-                            <span className="text-xl font-bold text-gray-900 hidden">
-                                {template.branding.institutionName}
-                            </span>
-                        </div>
-                        <div className="hidden md:flex items-center gap-8">
-                            {template.navigation?.links?.map((link, index) => (
-                                <a
-                                    key={index}
-                                    href={link.href}
-                                    className="text-gray-900 font-medium hover:opacity-80 transition-colors"
-                                    style={{ color: '#1a2332' }}
-                                >
-                                    {link.label}
-                                </a>
-                            ))}
-                        </div>
-                        <div className="hidden md:flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <input
-                                type="search"
-                                placeholder="Search"
-                                className="bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm w-40"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <section className="py-8 bg-white">
+            <section className="py-8">
                 <div className="max-w-7xl mx-auto px-4">
                     <h2
                         className="text-4xl md:text-5xl font-bold mb-2"
@@ -221,8 +195,8 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                     </h2>
                     <p className="text-gray-600 mb-8">{subtitle}</p>
 
-                    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mb-8">
-                        <div className="px-6 py-4 border-b border-gray-200">
+                    <div className={`${OKAGENCY_CARD_CLASS} overflow-hidden mb-8`}>
+                        <div className="px-6 py-4 border-b border-slate-200">
                             <h3 className="text-xl font-bold text-gray-900">
                                 {sd.priorityTableTitle || 'High-priority awards & renewals'}
                             </h3>
@@ -230,23 +204,23 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                         <div className="overflow-x-auto overflow-y-auto max-h-[22rem]">
                             <table className="w-full text-left text-sm">
                                 <thead>
-                                    <tr className="bg-gray-50 border-b border-gray-200">
-                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className="sticky top-0 z-10 bg-slate-50 px-6 py-3 font-semibold text-slate-900">
                                             {sd.colBusiness || 'Business / Award ID'}
                                         </th>
-                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">
+                                        <th className="sticky top-0 z-10 bg-slate-50 px-6 py-3 font-semibold text-slate-900">
                                             {sd.colPriority || 'Priority'}
                                         </th>
-                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">
+                                        <th className="sticky top-0 z-10 bg-slate-50 px-6 py-3 font-semibold text-slate-900">
                                             {sd.colLastActivity || 'Last portal activity'}
                                         </th>
-                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">
+                                        <th className="sticky top-0 z-10 bg-slate-50 px-6 py-3 font-semibold text-slate-900">
                                             {sd.colAlert || 'Compliance / renewal'}
                                         </th>
-                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">
+                                        <th className="sticky top-0 z-10 bg-slate-50 px-6 py-3 font-semibold text-slate-900">
                                             {sd.colFinancial || 'Match & disbursement'}
                                         </th>
-                                        <th className="sticky top-0 z-10 bg-gray-50 px-6 py-3 font-semibold text-gray-900">
+                                        <th className="sticky top-0 z-10 bg-slate-50 px-6 py-3 font-semibold text-slate-900">
                                             {sd.colAction || 'Action'}
                                         </th>
                                     </tr>
@@ -255,7 +229,18 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                                     {HIGH_PRIORITY_ROWS.map((row) => (
                                         <tr key={row.awardId} className="border-b border-gray-100 hover:bg-gray-50">
                                             <td className="px-6 py-4">
-                                                <span className="font-medium text-gray-900">{row.business}</span>
+                                                {typeof onBusinessClick === 'function' ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onBusinessClick(row.businessId)}
+                                                        className="text-left font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 rounded"
+                                                        style={{ color: primaryColor }}
+                                                    >
+                                                        {row.business}
+                                                    </button>
+                                                ) : (
+                                                    <span className="font-medium text-gray-900">{row.business}</span>
+                                                )}
                                                 <span className="text-gray-500 block text-xs">#{row.awardId}</span>
                                             </td>
                                             <td className="px-6 py-4">
@@ -301,20 +286,20 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                                 </tbody>
                             </table>
                         </div>
-                        <p className="px-6 py-3 text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
+                        <p className="px-6 py-3 text-xs text-slate-500 border-t border-slate-100 bg-slate-50/80">
                             {sd.tableDemoFootnote ||
                                 'Demonstration data. Officer actions are illustrative.'}
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h4 className="text-sm font-medium text-gray-600 mb-2">
                                 {sd.kpiDisbursedLabel || 'State funds disbursed YTD'}
                             </h4>
                             <p className="text-3xl font-bold text-emerald-700">{sd.kpiDisbursedValue || '$18.4M'}</p>
                         </div>
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h4 className="text-sm font-medium text-gray-600 mb-2">
                                 {sd.kpiRenewalLabel || 'Renewal & closeout package completion'}
                             </h4>
@@ -328,7 +313,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                                 <span className="text-2xl font-bold text-gray-900">{renewalWidth}%</span>
                             </div>
                         </div>
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h4 className="text-sm font-medium text-gray-600 mb-2">
                                 {sd.kpiPipelineLabel || 'Applications in active pipeline'}
                             </h4>
@@ -339,7 +324,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h3 className="text-lg font-bold text-gray-900 mb-4">
                                 {sd.docQueueTitle || 'Renewal & compliance document queue'}
                             </h3>
@@ -362,7 +347,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                             </a>
                         </div>
 
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h3 className="text-lg font-bold text-gray-900 mb-4">
                                 {sd.deadlinesTitle || 'Approaching deadlines & expirations'}
                             </h3>
@@ -376,7 +361,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                             </ul>
                         </div>
 
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h3 className="text-lg font-bold text-gray-900 mb-4">
                                 {sd.calendarTitle || 'Program officer calendar'}
                             </h3>
@@ -393,15 +378,26 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                             </ul>
                         </div>
 
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6`}>
                             <h3 className="text-lg font-bold text-gray-900 mb-4">
                                 {sd.atRiskTitle || 'Businesses — low portal activity'}
                             </h3>
                             <ul className="space-y-2">
                                 {AT_RISK_LIST.map((item, i) => (
-                                    <li key={i} className="flex justify-between items-center text-gray-700">
-                                        <span>{item.name}</span>
-                                        <span className="font-semibold text-red-700">{item.days}</span>
+                                    <li key={i} className="flex justify-between items-center text-gray-700 gap-2">
+                                        {typeof onBusinessClick === 'function' ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => onBusinessClick(item.businessId)}
+                                                className="text-left hover:underline focus:outline-none focus:ring-2 focus:ring-offset-1 rounded min-w-0 truncate"
+                                                style={{ color: primaryColor }}
+                                            >
+                                                {item.name}
+                                            </button>
+                                        ) : (
+                                            <span className="truncate">{item.name}</span>
+                                        )}
+                                        <span className="font-semibold text-red-700 shrink-0">{item.days}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -412,7 +408,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm lg:col-span-1">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6 lg:col-span-1`}>
                             <h3 className="text-lg font-bold text-gray-900 mb-4">
                                 {sd.expiringTitle || 'Grants & award terms expiring soon'}
                             </h3>
@@ -434,7 +430,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                             </ul>
                         </div>
 
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm lg:col-span-1">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6 lg:col-span-1`}>
                             <h3 className="text-lg font-bold text-gray-900 mb-4">
                                 {sd.pipelineTitle || 'Award pipeline status'}
                             </h3>
@@ -462,7 +458,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                             </p>
                         </div>
 
-                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm lg:col-span-1">
+                        <div className={`${OKAGENCY_CARD_CLASS} p-6 lg:col-span-1`}>
                             <h3 className="text-lg font-bold text-gray-900 mb-4">
                                 {sd.primeTitle || 'Prime grant-match candidates'}
                             </h3>
@@ -476,7 +472,18 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                                             {c.initials}
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-semibold text-gray-900 truncate">{c.name}</p>
+                                            {typeof onBusinessClick === 'function' ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onBusinessClick(c.businessId)}
+                                                    className="font-semibold text-left truncate w-full hover:underline focus:outline-none focus:ring-2 focus:ring-offset-1 rounded"
+                                                    style={{ color: primaryColor }}
+                                                >
+                                                    {c.name}
+                                                </button>
+                                            ) : (
+                                                <p className="font-semibold text-gray-900 truncate">{c.name}</p>
+                                            )}
                                             <p className="text-xs text-gray-600 mt-1">
                                                 <span className="font-medium">{sd.primeColEligibility || 'Eligibility'}:</span>{' '}
                                                 {c.eligibility}
@@ -496,52 +503,7 @@ function OkAgencyStaffDashboard({ onLogout, campusId }) {
                 </div>
             </section>
 
-            <footer className="bg-[#1a2332] text-white">
-                <div className="border-t border-gray-700" />
-                <div className="max-w-7xl mx-auto px-4 py-12">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-                        <div>
-                            <h3 className="font-bold text-lg mb-4">{template.branding.institutionName}</h3>
-                            <p className="text-gray-300 text-sm mb-2">{template.footer?.address || ''}</p>
-                            <p className="text-gray-300 text-sm">{template.footer?.phone || ''}</p>
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg mb-4">Quick Links</h3>
-                            <ul className="space-y-2">
-                                {template.footer?.quickLinks?.map((link, index) => (
-                                    <li key={index}>
-                                        <a href={link.href} className="text-gray-300 text-sm hover:text-white transition-colors">
-                                            {link.label}
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg mb-4">Connect</h3>
-                            <div className="flex gap-4">
-                                {template.footer?.socialMedia?.map((social, index) => (
-                                    <a
-                                        key={index}
-                                        href={social.href}
-                                        className="text-gray-300 hover:text-white transition-colors font-semibold"
-                                        aria-label={social.label}
-                                    >
-                                        {social.platform}
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="border-t border-gray-700">
-                    <div className="max-w-7xl mx-auto px-4 py-6">
-                        <p className="text-center text-gray-400 text-sm">
-                            © 2026 {template.branding.institutionName}. All Rights Reserved.
-                        </p>
-                    </div>
-                </div>
-            </footer>
+            <OkAgencyFooter />
 
             <ChatWidget floating />
         </div>
