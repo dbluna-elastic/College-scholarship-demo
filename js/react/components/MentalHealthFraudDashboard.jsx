@@ -222,10 +222,7 @@ function MentalHealthFraudDashboard({ onLogout, onRecipientClick }) {
                 </div>
             </nav>
 
-            {/* 3. Blank Hero Section (match CounselorDashboard chrome) */}
-            <section className="relative h-32 flex items-center justify-center bg-gray-50" />
-
-            {/* 4. Fraud Dashboard Content */}
+            {/* 3. Fraud Dashboard Content */}
             <section className="py-8 bg-white">
                 <div className="max-w-7xl mx-auto px-4">
                     <h2
@@ -464,7 +461,7 @@ function MentalHealthFraudDashboard({ onLogout, onRecipientClick }) {
                 </div>
             </section>
 
-            {/* 5. Footer */}
+            {/* 4. Footer */}
             <footer className="bg-[#1a2332] text-white">
                 <div className="border-t border-gray-700" />
                 <div className="max-w-7xl mx-auto px-4 py-12">

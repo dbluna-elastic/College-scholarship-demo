@@ -83,13 +83,31 @@ export function useAgentBuilder(agentId) {
             throw lastError;
         } catch (err) {
             console.error('Agent Builder error:', err);
-            setError(err.message || 'Failed to get response from agent');
+            const base = err.message || 'Failed to get response from agent';
+            setError(base);
             setIsLoading(false);
 
-            // Add error message to chat
+            let chatDetail = '';
+            if (err.details && typeof err.details === 'string') {
+                try {
+                    const j = JSON.parse(err.details);
+                    chatDetail =
+                        j.error?.reason ||
+                        j.error?.caused_by?.reason ||
+                        j.message ||
+                        '';
+                } catch {
+                    chatDetail = err.details.length > 800 ? `${err.details.slice(0, 800)}…` : err.details;
+                }
+            }
+            const content =
+                chatDetail && !base.includes(chatDetail.slice(0, 80))
+                    ? `Error: ${base}\n\n${chatDetail}`
+                    : `Error: ${base}`;
+
             const errorMessage = {
                 role: 'error',
-                content: `Error: ${err.message || 'Failed to get response'}`,
+                content,
                 timestamp: new Date().toISOString(),
             };
             setMessages(prev => [...prev, errorMessage]);

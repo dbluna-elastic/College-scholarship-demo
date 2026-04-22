@@ -32,6 +32,24 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
         agentId = 'studentcounselor';
     }
 
+    const content = template?.content || {};
+    const chatTitle = content.chatAssistantTitle ?? 'Chat Assistant';
+    const chatSubtitle =
+        content.chatAssistantSubtitle ??
+        (agentId === 'ok-fraud'
+            ? 'Ask me about fraud detection and compliance'
+            : 'Ask me about scholarships');
+    const chatEmptyBody =
+        content.chatAssistantEmptyBody ??
+        (agentId === 'ok-fraud'
+            ? 'Ask about fraud indicators, investigations, or compliance.'
+            : 'Start a conversation by asking about scholarships!');
+    const chatEmptyTry =
+        content.chatAssistantEmptyTry ??
+        (agentId === 'ok-fraud'
+            ? 'Try: "What are common fraud indicators?"'
+            : 'Try: "What scholarships are available?"');
+
     const {
         messages,
         isLoading,
@@ -39,6 +57,14 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
         sendMessage,
         clearConversation,
     } = useAgentBuilder(agentId);
+
+    useEffect(() => {
+        if (template?.id === 'okagency' && getEnvVar('ELASTIC_AGENT_ID', '').trim()) {
+            console.warn(
+                'ELASTIC_AGENT_ID is set: it overrides the template agent ID. Oklahoma Agency chat may use a different agent or nginx route than okagency.js configures.'
+            );
+        }
+    }, [template?.id]);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -85,10 +111,8 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
                 }}
             >
                 <div>
-                    <h3 className="font-semibold">Chat Assistant</h3>
-                    <p className="text-xs opacity-90">
-                        {agentId === 'ok-fraud' ? 'Ask me about fraud detection and compliance' : 'Ask me about scholarships'}
-                    </p>
+                    <h3 className="font-semibold">{chatTitle}</h3>
+                    <p className="text-xs opacity-90">{chatSubtitle}</p>
                 </div>
                 <div className="flex gap-2">
                     <button
@@ -122,16 +146,8 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                 {messages.length === 0 && (
                     <div className="text-center text-gray-500 text-sm py-8">
-                        <p>
-                            {agentId === 'ok-fraud'
-                                ? 'Ask about fraud indicators, investigations, or compliance.'
-                                : 'Start a conversation by asking about scholarships!'}
-                        </p>
-                        <p className="mt-2 text-xs">
-                            {agentId === 'ok-fraud'
-                                ? 'Try: "What are common fraud indicators?"'
-                                : 'Try: "What scholarships are available?"'}
-                        </p>
+                        <p>{chatEmptyBody}</p>
+                        <p className="mt-2 text-xs">{chatEmptyTry}</p>
                     </div>
                 )}
 

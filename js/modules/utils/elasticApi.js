@@ -11,6 +11,33 @@ import { getEnvVar } from './getEnvVar.js';
 import { maskValue } from './maskValue.js';
 import { tracedFetch } from './tracingHelpers.js';
 
+/** Agent Builder agents served from gawdzilla (OK_KIBANA_URL / OK_KIBANA_API_KEY), not ELASTIC_KB_URL. */
+const GAWDZILLA_AGENT_BUILDER_IDS = new Set(['ok-fraud', 'ok-grants-data']);
+
+function usesGawdzillaAgentBuilder(agentId) {
+    return Boolean(agentId && GAWDZILLA_AGENT_BUILDER_IDS.has(String(agentId)));
+}
+
+/** Best-effort summary from Kibana / Agent Builder error JSON or raw text (for UI and logs). */
+function summarizeAgentBuilderErrorBody(errorText) {
+    if (errorText == null || errorText === '') return '';
+    const raw = String(errorText).trim();
+    try {
+        const j = JSON.parse(raw);
+        const parts = [
+            j.error?.reason,
+            j.error?.caused_by?.reason,
+            j.message,
+            j.statusMessage,
+            typeof j.error === 'string' ? j.error : null,
+        ].filter(Boolean);
+        if (parts.length) return parts.join(' — ');
+    } catch {
+        /* not JSON */
+    }
+    return raw.length > 600 ? `${raw.slice(0, 600)}…` : raw;
+}
+
 /**
  * Gets the Elastic API key from environment
  * @returns {string} API key or empty string
@@ -25,12 +52,12 @@ function getApiKey() {
 }
 
 /**
- * Gets the API key to use for a given agent. ok-fraud uses gawdzilla (OK_KIBANA_API_KEY).
- * @param {string} [agentId] - Agent ID; when 'ok-fraud', use OK_KIBANA_API_KEY if set
+ * Gets the API key to use for a given agent. ok-fraud and okagency ok-grants-data Agent Builder use gawdzilla (OK_KIBANA_API_KEY).
+ * @param {string} [agentId] - Agent ID; gawdzilla agents use OK_KIBANA_API_KEY if set
  * @returns {string} API key or empty string
  */
 function getApiKeyForAgent(agentId) {
-    if (agentId === 'ok-fraud') {
+    if (usesGawdzillaAgentBuilder(agentId)) {
         const fraudKey = getEnvVar('OK_KIBANA_API_KEY', '');
         if (fraudKey) return fraudKey;
     }
@@ -40,13 +67,17 @@ function getApiKeyForAgent(agentId) {
 /**
  * Creates Authorization header for Elastic API requests
  * @param {boolean} includeKbnXsrf - Whether to include kbn-xsrf header (for Kibana/Agent Builder)
- * @param {string} [agentId] - When 'ok-fraud', use OK_KIBANA_API_KEY for gawdzilla auth
+ * @param {string} [agentId] - Gawdzilla agents use OK_KIBANA_API_KEY for auth
  * @returns {Object} Headers object with Authorization
  */
 function createAuthHeaders(includeKbnXsrf = false, agentId = '') {
     const apiKey = getApiKeyForAgent(agentId);
     if (!apiKey) {
-        console.warn(agentId === 'ok-fraud' ? 'OK_KIBANA_API_KEY (or ELASTIC_API_KEY) not found for ok-fraud' : 'ELASTIC_API_KEY not found in environment');
+        console.warn(
+            usesGawdzillaAgentBuilder(agentId)
+                ? 'OK_KIBANA_API_KEY (or ELASTIC_API_KEY) not found for gawdzilla Agent Builder'
+                : 'ELASTIC_API_KEY not found in environment'
+        );
         return {};
     }
 
@@ -213,9 +244,11 @@ export async function fetchElasticsearchSearchWithAgent(index, queryBody, agentI
 export async function fetchAgentChat(agentId, message, conversationId = null) {
     const apiKey = getApiKeyForAgent(agentId);
     if (!apiKey) {
-        throw new Error(agentId === 'ok-fraud'
-            ? 'OK_KIBANA_API_KEY is required for the ok-fraud agent (add it to .env for gawdzilla)'
-            : 'ELASTIC_API_KEY is required for Agent Builder');
+        throw new Error(
+            usesGawdzillaAgentBuilder(agentId)
+                ? 'OK_KIBANA_API_KEY is required for this agent (gawdzilla Agent Builder; add it to .env)'
+                : 'ELASTIC_API_KEY is required for Agent Builder'
+        );
     }
 
     if (!agentId) {
@@ -238,20 +271,28 @@ export async function fetchAgentChat(agentId, message, conversationId = null) {
             ...(conversationId && { conversation_id: conversationId }),
         };
 
-        const response = await tracedFetch(`/api/elastic/agent/${agentId}/chat`, {
+        const response = await tracedFetch(`/api/elastic/agent/${encodeURIComponent(agentId)}/chat`, {
             method: 'POST',
-            headers: createAuthHeaders(true, agentId), // Include kbn-xsrf; use OK_KIBANA_API_KEY for ok-fraud
+            headers: createAuthHeaders(true, agentId), // kbn-xsrf; OK_KIBANA_API_KEY for gawdzilla agents
             body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
             const errorText = await response.text();
+            const summary = summarizeAgentBuilderErrorBody(errorText);
             console.error('Agent Builder chat failed:', {
                 status: response.status,
                 statusText: response.statusText,
-                error: errorText.substring(0, 200),
+                summary: summary || undefined,
+                errorBodyPreview: errorText.substring(0, 2000),
             });
-            throw new Error(`Agent Builder chat failed: ${response.status} ${response.statusText}`);
+            const message = summary
+                ? `Agent Builder chat failed: ${response.status} ${response.statusText} — ${summary}`
+                : `Agent Builder chat failed: ${response.status} ${response.statusText}`;
+            const err = new Error(message);
+            err.status = response.status;
+            err.details = errorText;
+            throw err;
         }
 
         const jsonData = await response.json();

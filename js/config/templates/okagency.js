@@ -39,6 +39,10 @@ export const okagencyTemplate = {
         mainHeading: 'North America\'s Central Location for Business',
         mainTagline: 'A GLOBAL VISION WITH A LOCAL FOCUS',
         chatBubbleText: 'Can I help you find something?',
+        chatAssistantTitle: 'Carey Grant Bot',
+        chatAssistantSubtitle: 'Ask about Oklahoma grants, programs, and how to apply.',
+        chatAssistantEmptyBody: 'Ask about state grant opportunities, eligibility, or deadlines.',
+        chatAssistantEmptyTry: 'Try: "What workforce grants are open right now?"',
         grantsSearch: {
             pageTitle: 'Find grants',
             intro:
@@ -112,15 +116,72 @@ export const okagencyTemplate = {
             kpiNextValue: 'Apr 15',
             kpiNextHint: 'LOI deadline — Q2 round',
             tableTitle: 'Match grant applications',
+            demoCompanyName: 'Red River Manufacturing LLC',
+            statusLabelForecasted: 'Forecasted',
+            statusLabelActive: 'Under review',
+            statusLabelClosed: 'Closed – disbursed',
             newApplicationCta: 'Start new application',
             tableFootnote:
                 'Sample data for demonstration. Amounts and statuses are illustrative; official records are maintained by the agency.',
+            applicationsLoading: 'Loading applications…',
+            tableFootnoteFromIndex:
+                'Programs and dates are loaded from the state grant index. State match amounts use half of estimated total funding when available (illustrative split with private match).',
             deadlinesTitle: 'Upcoming deadlines',
             resourcesTitle: 'Program resources',
             resourcesBody:
                 'Match ratios, eligible expenses, and compliance reporting differ by program. Always use the current published guidelines before applying.',
             resourcesCta: 'View guidelines',
         },
+        staffDashboard: {
+            pageTitle: 'Grant Program Dashboard',
+            subtitle:
+                'Match state grants to eligible businesses. Prioritize renewals, expiring award terms, and compliance follow-up.',
+            priorityTableTitle: 'High-priority awards & renewals',
+            colBusiness: 'Business / Award ID',
+            colPriority: 'Priority',
+            colLastActivity: 'Last portal activity',
+            colAlert: 'Compliance / renewal',
+            colFinancial: 'Match & disbursement',
+            colAction: 'Action',
+            tableDemoFootnote:
+                'Demonstration data. Officer actions are illustrative; official records are maintained in the agency system of record.',
+            kpiDisbursedLabel: 'State funds disbursed YTD',
+            kpiDisbursedValue: '$18.4M',
+            kpiRenewalLabel: 'Renewal & closeout package completion',
+            kpiRenewalPercent: 72,
+            kpiPipelineLabel: 'Applications in active pipeline',
+            kpiPipelineValue: '842',
+            docQueueTitle: 'Renewal & compliance document queue',
+            deadlinesTitle: 'Approaching deadlines & expirations',
+            calendarTitle: 'Program officer calendar',
+            calendarToday: 'Today',
+            atRiskTitle: 'Businesses — low portal activity',
+            atRiskCaption: 'Days since last meaningful portal activity.',
+            readMoreLink: 'Read more',
+            expiringTitle: 'Grants & award terms expiring soon',
+            matchedBusinessesLink: 'Matched businesses',
+            pipelineTitle: 'Award pipeline status',
+            pipelineSubmitted: 'Submitted',
+            pipelineInReview: 'In review',
+            pipelineAwarded: 'Awarded (active)',
+            pipelineRenewal: 'Renewal due',
+            pipelineClosed: 'Closed',
+            pipelineFootnote: 'Counts are illustrative totals across all open programs.',
+            primeTitle: 'Prime grant-match candidates',
+            primeColBusiness: 'Business',
+            primeColEligibility: 'Eligibility score',
+            primeColEngagement: 'Last touch',
+            primeColProfile: 'NAICS / size',
+            actionEmail: 'Email',
+            actionCall: 'Call',
+            actionSchedule: 'Schedule',
+            actionRefer: 'Refer to program',
+        },
+    },
+
+    schemaLabels: {
+        dashboardStaff: 'Grant Program Dashboard',
+        staffRole: 'program staff',
     },
 
     colors: {
@@ -183,11 +244,23 @@ export const okagencyTemplate = {
     schema: 'agency',
 
     elastic: {
-        agentId: null,
+        /**
+         * Elastic Agent Builder agent ID on gawdzilla (must match Stack Management → Agent Builder).
+         * Default id ok-grants-data — not the same string as the ES index ok-grant-data.
+         * Uses OK_KIBANA_API_KEY. If your agent ID differs, change this and add the same id to
+         * GAWDZILLA_AGENT_BUILDER_IDS in js/modules/utils/elasticApi.js plus nginx/vite agent chat routes.
+         *
+         * If chat returns 500: see env.template “Oklahoma Agency / Agent Builder” and the Network tab body.
+         * Unset ELASTIC_AGENT_ID unless you intend to override this id globally.
+         */
+        agentId: 'ok-grants-data',
         /** Find Grants results: _search on gawdzilla (ok-fraud proxy + OK_KIBANA_API_KEY) */
         grantsDataIndex: 'ok-grant-data',
         grantsDataAgentId: 'ok-fraud',
-        grantsSearchSize: 2000,
+        grantsSearchSize: 10,
+        /** Company dashboard “Match grant applications” table: up to this many rows from the same index */
+        dashboardGrantsMin: 2,
+        dashboardGrantsMax: 5,
     },
 
     search: {

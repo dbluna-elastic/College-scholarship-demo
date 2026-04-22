@@ -20,6 +20,7 @@ import CounselorDashboard from './components/CounselorDashboard.jsx';
 import MentalHealthFraudDashboard from './components/MentalHealthFraudDashboard.jsx';
 import FraudRecipientDetail from './components/FraudRecipientDetail.jsx';
 import OkCommerceCompanyDashboard from './components/OkCommerceCompanyDashboard.jsx';
+import OkAgencyStaffDashboard from './components/OkAgencyStaffDashboard.jsx';
 import StateAgencyGrantsSearch from './components/StateAgencyGrantsSearch.jsx';
 import { getApm, setUserContext, clearUserContext } from '../modules/tracing.js';
 
@@ -192,6 +193,9 @@ function App() {
                     }}
                 />
             );
+        }
+        if (template?.id === 'okagency') {
+            return <OkAgencyStaffDashboard onLogout={handleLogout} campusId={campusId} />;
         }
         return <CounselorDashboard onLogout={handleLogout} />;
     }

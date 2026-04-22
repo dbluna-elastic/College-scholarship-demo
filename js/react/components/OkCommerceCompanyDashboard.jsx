@@ -3,9 +3,10 @@
  * Demo UI for companies tracking state match-grant applications and awards.
  */
 
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import ChatWidget from './ChatWidget.jsx';
+import { getOkGrantDashboardApplications } from '../../modules/utils/esqlQueries.js';
 
 const DEMO_APPLICATIONS = [
     {
@@ -43,6 +44,13 @@ const DEMO_DEADLINES = [
     { label: 'Annual compliance report (MG-2025-0801)', date: 'Jun 30, 2026' },
 ];
 
+function formatSubmittedDisplay(value) {
+    if (value == null || value === '' || value === '—') return '—';
+    const t = new Date(value);
+    if (Number.isNaN(t.getTime())) return String(value);
+    return t.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 function StatCard({ label, value, hint, primaryColor }) {
     return (
         <div
@@ -66,6 +74,47 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
     const secondaryColor = template?.colors?.secondary || '#2E7D32';
     const accentColor = template?.colors?.accent || '#0ea5e9';
     const dash = template?.content?.dashboard || {};
+    const [applicationsLoading, setApplicationsLoading] = useState(() =>
+        Boolean(template?.elastic?.grantsDataIndex)
+    );
+    const [applicationRows, setApplicationRows] = useState(DEMO_APPLICATIONS);
+    const [applicationsFromIndex, setApplicationsFromIndex] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        const idx = template?.elastic?.grantsDataIndex;
+        if (!template || !idx) {
+            setApplicationRows(DEMO_APPLICATIONS);
+            setApplicationsFromIndex(false);
+            setApplicationsLoading(false);
+            return undefined;
+        }
+        setApplicationsLoading(true);
+        getOkGrantDashboardApplications(template)
+            .then((apps) => {
+                if (cancelled) return;
+                if (apps.length > 0) {
+                    setApplicationRows(apps);
+                    setApplicationsFromIndex(true);
+                } else {
+                    setApplicationRows(DEMO_APPLICATIONS);
+                    setApplicationsFromIndex(false);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setApplicationsLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        template?.id,
+        template?.elastic?.grantsDataIndex,
+        template?.elastic?.grantsDataAgentId,
+        template?.elastic?.dashboardGrantsMin,
+        template?.elastic?.dashboardGrantsMax,
+    ]);
+
     const pageTitle = dash.pageTitle || 'Company Match Grants';
     const pageSubtitle =
         dash.pageSubtitle ||
@@ -216,13 +265,22 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {DEMO_APPLICATIONS.map((row) => (
+                                        {applicationsLoading ? (
+                                            <tr>
+                                                <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
+                                                    {dash.applicationsLoading || 'Loading applications…'}
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            applicationRows.map((row) => (
                                             <tr key={row.id} className="border-b border-slate-100 last:border-0">
                                                 <td className="px-5 py-4 font-mono text-xs font-semibold text-slate-800">
                                                     {row.id}
                                                 </td>
                                                 <td className="px-5 py-4 text-slate-700">{row.program}</td>
-                                                <td className="px-5 py-4 text-slate-600">{row.submitted}</td>
+                                                <td className="px-5 py-4 text-slate-600">
+                                                    {formatSubmittedDisplay(row.submitted)}
+                                                </td>
                                                 <td className="px-5 py-4 font-medium text-slate-900">{row.stateMatch}</td>
                                                 <td className="px-5 py-4">
                                                     <span
@@ -236,14 +294,19 @@ function OkCommerceCompanyDashboard({ onLogout, campusId }) {
                                                     </span>
                                                 </td>
                                             </tr>
-                                        ))}
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                         <p className="mt-3 text-xs text-slate-500">
-                            {dash.tableFootnote ||
-                                'Sample data for demonstration. Award amounts and statuses are illustrative.'}
+                            {applicationsFromIndex
+                                ? dash.tableFootnoteFromIndex ||
+                                  dash.tableFootnote ||
+                                  'Programs and dates come from the state grant index; match amounts show an illustrative 50/50 split when totals are available.'
+                                : dash.tableFootnote ||
+                                  'Sample data for demonstration. Award amounts and statuses are illustrative.'}
                         </p>
                     </section>
 

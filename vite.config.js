@@ -42,6 +42,16 @@ export default defineConfig({
                     });
                 }
             },
+            '/api/elastic/agent/ok-grants-data/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (ok-grants-data) proxy error:', err);
+                    });
+                }
+            },
             // Proxy for Kibana/Agent Builder API (default: apex)
             '/api/elastic': {
                 target: 'https://apex-dec2025-group4-b01431.kb.us-central1.gcp.elastic.cloud',

@@ -759,6 +759,87 @@ function mapElasticsearchGrantHitToRow(hit) {
     };
 }
 
+function formatDashboardGrantMoney(n) {
+    if (n == null || !Number.isFinite(n)) return '—';
+    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+    return `$${Math.round(n).toLocaleString()}`;
+}
+
+/**
+ * Map a catalog grant row to OkCommerceCompanyDashboard table shape.
+ * @param {Object} g - Row from mapElasticsearchGrantHitToRow
+ * @param {Object} [template]
+ * @returns {{ id: string, program: string, company: string, submitted: string, stateMatch: string, privateMatch: string, status: string }}
+ */
+function mapGrantRowToDashboardApplication(g, template = {}) {
+    const dash = template.content?.dashboard || {};
+    const company =
+        dash.demoCompanyName ||
+        template.branding?.institutionName ||
+        'Sample applicant organization';
+    const total = g.estimatedTotal;
+    const half = total != null && Number.isFinite(total) ? total / 2 : null;
+    const stateMatch = formatDashboardGrantMoney(half ?? total);
+    const privateMatch = stateMatch;
+
+    let status = 'Under review';
+    if (g.status === 'forecasted') status = dash.statusLabelForecasted || 'Forecasted';
+    else if (g.status === 'closed') status = dash.statusLabelClosed || 'Closed – disbursed';
+    else status = dash.statusLabelActive || 'Under review';
+
+    const ref = String(g.id || '').replace(/\s+/g, '-');
+    const refDisplay = ref.length > 18 ? `MG-${ref.slice(-12)}` : ref.startsWith('MG-') ? ref : `MG-${ref}`;
+
+    return {
+        id: refDisplay,
+        program: g.title || '—',
+        company,
+        submitted: g.openDate || g.deadline || '—',
+        stateMatch,
+        privateMatch,
+        status,
+    };
+}
+
+/**
+ * Load 2–5 grant rows from ok-grant-data for the company match-grant applications table.
+ *
+ * @param {Object} [template] - Uses template.elastic.grantsDataIndex, grantsDataAgentId, dashboardGrantsMin, dashboardGrantsMax
+ * @returns {Promise<Array<Object>>} Dashboard application rows; empty array on error / no index (caller falls back to demo)
+ */
+export async function getOkGrantDashboardApplications(template = {}) {
+    const elastic = template.elastic || {};
+    const index = elastic.grantsDataIndex || 'ok-grant-data';
+    const agentId = elastic.grantsDataAgentId || 'ok-fraud';
+    const minRows = Math.min(5, Math.max(1, Number(elastic.dashboardGrantsMin) || 1));
+    const maxRows = Math.min(10, Math.max(minRows, Number(elastic.dashboardGrantsMax) || 5));
+    const fetchSize = maxRows;
+
+    const queryBody = {
+        query: { match_all: {} },
+        size: fetchSize,
+        sort: [{ _doc: 'asc' }],
+    };
+
+    try {
+        const result = await fetchElasticsearchSearchWithAgent(index, queryBody, agentId);
+        const hits = result.hits?.hits || [];
+        const catalogRows = hits.map((hit) => mapElasticsearchGrantHitToRow(hit));
+        let apps = catalogRows.map((g) => mapGrantRowToDashboardApplication(g, template));
+        if (apps.length > maxRows) apps = apps.slice(0, maxRows);
+        if (apps.length < minRows) return [];
+        return apps;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn(`Grant index "${index}" not found (404). Dashboard applications will use demo data.`);
+            return [];
+        }
+        console.error('getOkGrantDashboardApplications error:', error);
+        return [];
+    }
+}
+
 /**
  * Load grant opportunities from ok-grant-data (gawdzilla ES) for the State Agency grants UI.
  *
