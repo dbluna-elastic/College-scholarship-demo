@@ -43,7 +43,7 @@ function App() {
 
     // Agency hero overlay: header becomes solid on scroll (okmentalhealth only; okagency uses solid grants search header)
     useEffect(() => {
-        if (template?.id !== 'okmentalhealth') return;
+        if (!['okmentalhealth', 'dot'].includes(template?.id)) return;
         const onScroll = () => setHeaderScrolled(window.scrollY > 60);
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
@@ -301,7 +301,7 @@ function App() {
     }
 
     // Oklahoma agency–style layout (okagency, okmentalhealth): overlay header, hero, blue bar, promo bar, white main
-    const isAgencyOverlayLayout = ['okagency', 'okmentalhealth'].includes(template?.id);
+    const isAgencyOverlayLayout = ['okagency', 'okmentalhealth', 'dot'].includes(template?.id);
     const primaryColor = template?.colors?.primary || '#5D5FEF';
     const secondaryColor = template?.colors?.secondary || '#2E7D32';
     const accentColor = template?.colors?.accent || '#0ea5e9';
@@ -329,13 +329,27 @@ function App() {
     }
 
     if (isAgencyOverlayLayout) {
+        const dotLanding = template?.content?.dotLanding || {};
+        const featuredBanner = dotLanding.featuredBanner;
+        const quickTiles = Array.isArray(dotLanding.quickTiles) ? dotLanding.quickTiles : [];
+        const spotlight = dotLanding.spotlight;
+
         return (
             <div className="w-full min-h-screen bg-white" style={{ fontFamily: template?.typography?.fontFamily }}>
+                {template?.id === 'dot' && (
+                    <a
+                        href="#dot-main-content"
+                        className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:block focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:shadow-lg"
+                    >
+                        {dotLanding.skipToContent || 'Skip to main content'}
+                    </a>
+                )}
                 {/* Overlay Header: transparent on hero, solid on scroll */}
                 <header
-                    className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 flex items-center justify-between h-16 px-4 md:px-8 ${
-                        headerScrolled ? 'bg-[#003366] shadow-md' : 'bg-transparent'
+                    className={`fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between px-4 transition-all duration-300 md:px-8 ${
+                        headerScrolled ? 'shadow-md' : 'bg-transparent'
                     }`}
+                    style={headerScrolled ? { backgroundColor: primaryColor } : undefined}
                 >
                     <div className="flex items-center gap-3">
                         <img
@@ -404,6 +418,41 @@ function App() {
                     </div>
                 </section>
 
+                {/* DOT: featured announcement strip (TxDOT-style, template-driven) */}
+                {template?.id === 'dot' && featuredBanner?.title && (
+                    <a
+                        href={featuredBanner.href || '#'}
+                        className="block w-full border-b border-slate-200 bg-white py-5 text-left shadow-sm transition-colors hover:bg-slate-50"
+                    >
+                        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 md:flex-row md:items-center md:justify-between md:px-8">
+                            <div>
+                                {featuredBanner.eyebrow && (
+                                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                                        {featuredBanner.eyebrow}
+                                    </p>
+                                )}
+                                <h2
+                                    className="text-xl font-black tracking-tight text-slate-900 md:text-2xl"
+                                    style={{ fontFamily: template?.typography?.fontFamily }}
+                                >
+                                    {featuredBanner.title}
+                                </h2>
+                                {featuredBanner.subtitle && (
+                                    <p className="mt-1 max-w-3xl text-sm text-slate-600 md:text-base">{featuredBanner.subtitle}</p>
+                                )}
+                            </div>
+                            {featuredBanner.linkText && (
+                                <span
+                                    className="shrink-0 text-sm font-bold md:text-base"
+                                    style={{ color: primaryColor }}
+                                >
+                                    {featuredBanner.linkText} →
+                                </span>
+                            )}
+                        </div>
+                    </a>
+                )}
+
                 {/* Blue bar: newsletter + sidebar icons */}
                 <div
                     className="w-full flex flex-wrap items-center justify-between gap-4 py-3 px-4 md:px-8 text-white"
@@ -432,6 +481,34 @@ function App() {
                     </div>
                 </div>
 
+                {/* DOT: quick service tiles */}
+                {template?.id === 'dot' && quickTiles.length > 0 && (
+                    <section className="border-b border-slate-200 bg-slate-100 py-10 md:py-12" aria-label="Popular services">
+                        <div className="mx-auto grid max-w-7xl gap-4 px-4 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
+                            {quickTiles.map((tile, idx) => (
+                                <a
+                                    key={idx}
+                                    href={tile.href || '#'}
+                                    className="group flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                                >
+                                    <h3
+                                        className="text-base font-bold text-slate-900 group-hover:underline"
+                                        style={{ color: primaryColor }}
+                                    >
+                                        {tile.label}
+                                    </h3>
+                                    {tile.description && (
+                                        <p className="mt-2 flex-1 text-sm leading-snug text-slate-600">{tile.description}</p>
+                                    )}
+                                    <span className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+                                        {dotLanding.tileCta || 'Learn more'} →
+                                    </span>
+                                </a>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 {/* Green feature banner */}
                 {template.content?.promoBar && (
                     <a
@@ -443,8 +520,35 @@ function App() {
                     </a>
                 )}
 
+                {/* DOT: safety / mission spotlight */}
+                {template?.id === 'dot' && spotlight?.title && (
+                    <section className="border-b border-slate-800 bg-slate-900 py-12 text-white md:py-16">
+                        <div className="mx-auto max-w-4xl px-4 text-center md:px-8">
+                            <h2
+                                className="text-2xl font-black tracking-tight md:text-3xl"
+                                style={{ fontFamily: template?.typography?.fontFamily }}
+                            >
+                                {spotlight.title}
+                            </h2>
+                            {spotlight.body && (
+                                <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/85 md:text-lg">
+                                    {spotlight.body}
+                                </p>
+                            )}
+                            {spotlight.linkText && (
+                                <a
+                                    href={spotlight.href || '#'}
+                                    className="mt-6 inline-block rounded-full border-2 border-white/70 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/10"
+                                >
+                                    {spotlight.linkText}
+                                </a>
+                            )}
+                        </div>
+                    </section>
+                )}
+
                 {/* Main content: white, H2 + tagline + news */}
-                <main className="bg-white py-16">
+                <main id={template?.id === 'dot' ? 'dot-main-content' : undefined} className="bg-white py-16">
                     <div className="max-w-7xl mx-auto px-4">
                         <h2
                             className="text-3xl md:text-4xl font-bold text-center mb-3"

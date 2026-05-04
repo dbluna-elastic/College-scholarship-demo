@@ -1,6 +1,7 @@
 /**
- * Department of Transportation (DOT) - State Agency template
- * Professional Gov aesthetic: blue/grays, high accessibility.
+ * Department of Transportation (DOT) — state agency template
+ * Landing pattern inspired by large DOT public sites (hero, featured line, quick tiles, program bar, news).
+ * Copy and imagery are intentionally generic, not tied to a single state.
  * Schema: agency (Citizen / Case Worker / Status).
  */
 export const dotTemplate = {
@@ -11,31 +12,77 @@ export const dotTemplate = {
 
     branding: {
         institutionName: 'Department of Transportation',
-        tagline: 'Safe Roads. Strong Connections.',
+        tagline: 'Safe roads. Reliable information. Stronger connections.',
         logo: '/logo-dot.svg',
     },
 
     content: {
-        heroTitle: 'Building Safer Roads and Stronger Connections',
-        heroSubtitle: 'Learn more about state transportation projects, permits, and services.',
-        ctaText: 'Learn More',
-        ctaSecondary: 'Sign Up for Updates',
-        stateName: 'Oklahoma',
-        stateAbbreviation: 'OK',
-        welcomeMessage: 'Welcome to the Department of Transportation Portal',
+        heroTitle: 'Connecting people, freight, and communities',
+        heroSubtitle: 'Official maps, permits, project news, and travel information in one place.',
+        ctaText: 'Explore services',
+        ctaSecondary: 'Email updates',
+        stateName: 'Demo State',
+        stateAbbreviation: 'DS',
+        welcomeMessage: 'Welcome to the Department of Transportation',
+        mainHeading: 'News, projects, and programs',
+        mainTagline: 'PLAN AHEAD · STAY INFORMED · ARRIVE SAFELY',
+        blueBar: {
+            newsletterText: 'Sign up for traffic alerts and agency news',
+            scrollPromptText: 'Scroll for popular services',
+        },
         promoBar: {
-            text: 'Click here for information on the State Transportation Improvement Program',
-            href: '#strategic-plan',
+            text: 'View the statewide transportation improvement program and current letting',
+            href: '#projects',
+        },
+        dotLanding: {
+            skipToContent: 'Skip to main content',
+            tileCta: 'Open',
+            featuredBanner: {
+                eyebrow: 'Traveler information',
+                title: 'Lane closures, detours, and major project schedules are updated regularly.',
+                subtitle: 'Check conditions before long trips or peak commute times.',
+                linkText: 'Roadwork and corridor updates',
+                href: '#projects',
+            },
+            quickTiles: [
+                {
+                    label: 'Maps & guides',
+                    description: 'Official highway maps, district offices, and corridor resources.',
+                    href: '#maps',
+                },
+                {
+                    label: 'Road conditions',
+                    description: 'Incidents, weather-related impacts, and planned restrictions.',
+                    href: '#conditions',
+                },
+                {
+                    label: 'Permits & compliance',
+                    description: 'Commercial vehicle permits, utilities, and construction access.',
+                    href: '#permits',
+                },
+                {
+                    label: 'Data & safety',
+                    description: 'Crash statistics, dashboards, and work zone safety materials.',
+                    href: '#data',
+                },
+            ],
+            spotlight: {
+                title: 'Safety is a shared responsibility',
+                body: 'Slow down in work zones, move over for stopped vehicles, and give crews room to work.',
+                linkText: 'Driver and work zone safety',
+                href: '#safety',
+            },
         },
     },
 
-    // Gov aesthetic: professional blue and grays, high contrast/accessibility
     colors: {
         primary: '#003366',
-        secondary: '#2E7D32',
-        warning: '#C05600',
-        bgBase: '#0B0B0B',
-        bgSurface: '#1a365d',
+        secondary: '#1b5e20',
+        accent: '#0369a1',
+        charcoal: '#0f172a',
+        warning: '#b45309',
+        bgBase: '#0b1220',
+        bgSurface: '#0f2942',
     },
 
     typography: {
@@ -46,31 +93,33 @@ export const dotTemplate = {
 
     navigation: {
         links: [
+            { label: 'Travel', href: '#conditions' },
             { label: 'Projects', href: '#projects' },
             { label: 'Permits', href: '#permits' },
-            { label: 'Maps', href: '#maps' },
-            { label: 'Contact', href: '#contact' },
+            { label: 'Maps & data', href: '#maps' },
             { label: 'About', href: '#about' },
-            { label: 'Resources', href: '#resources' },
+            { label: 'Contact', href: '#contact' },
         ],
     },
 
     hero: {
-        backgroundImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1920&q=80',
-        mainHeading: 'Building Safer Roads and Stronger Connections',
-        subHeading: 'Learn more about what makes our state a place to move forward.',
+        backgroundImage:
+            'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80',
+        mainHeading: 'Connecting your state',
+        subHeading:
+            'Reliable roads and bridges, transparent project information, and tools that keep people and freight moving.',
         ctaButtons: {
-            primary: 'Learn More',
-            secondary: 'Sign Up for Updates',
+            primary: 'Explore services',
+            secondary: 'Email updates',
         },
     },
 
     footer: {
-        address: '200 N.E. 21st Street, Oklahoma City, OK 73105',
-        phone: '(405) 521-2525',
+        address: 'State Transportation Building, 100 Capitol Mall, Capital City',
+        phone: '(555) 555-0100',
         quickLinks: [
-            { label: 'Map', href: '#map' },
-            { label: 'Employment', href: '#employment' },
+            { label: 'Public records', href: '#records' },
+            { label: 'Careers', href: '#employment' },
             { label: 'Privacy', href: '#privacy' },
             { label: 'Accessibility', href: '#accessibility' },
         ],
@@ -88,7 +137,7 @@ export const dotTemplate = {
 
     search: {
         defaultFilters: {
-            state: 'Oklahoma',
+            state: 'Demo State',
         },
         preferences: {
             sortBy: 'deadline',
@@ -99,21 +148,24 @@ export const dotTemplate = {
     news: [
         {
             category: 'Projects',
-            title: 'Highway 75 Improvement Project Breaks Ground',
-            description: 'Major safety and capacity improvements will begin this spring on the corridor.',
+            title: 'Major interchange modernization enters construction',
+            description:
+                'Lane configurations will change in phases; signed detours and digital message boards will guide drivers.',
             image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&q=80',
         },
         {
             category: 'Safety',
-            title: 'New Work Zone Safety Campaign Launches',
-            description: 'Statewide campaign aims to reduce incidents in work zones.',
-            image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80',
+            title: 'Work zone awareness campaign rolls out statewide',
+            description:
+                'New public service announcements highlight speed limits, following distance, and night visibility.',
+            image: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80',
         },
         {
-            category: 'Transit',
-            title: 'Transit Grant Program Opens for Applications',
-            description: 'Local agencies can apply for funding to expand public transit options.',
-            image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=80',
+            category: 'Grants',
+            title: 'Local match program opens for bridge and pavement preservation',
+            description:
+                'Cities and counties can apply for cost-shared awards focused on rural corridors and freight routes.',
+            image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&q=80',
         },
     ],
 };
