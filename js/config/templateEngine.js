@@ -17,6 +17,7 @@ import { beauregardTemplate } from './templates/beauregard.js';
 import { okagencyTemplate } from './templates/okagency.js';
 import { okmentalhealthTemplate } from './templates/okmentalhealth.js';
 import { dotTemplate } from './templates/dot.js';
+import { texascollegeTemplate } from './templates/texascollege.js';
 import { getEnvVar } from '../modules/utils/getEnvVar.js';
 
 // Template registry
@@ -28,6 +29,7 @@ const templates = {
     okagency: okagencyTemplate,
     okmentalhealth: okmentalhealthTemplate,
     dot: dotTemplate,
+    texascollege: texascollegeTemplate,
 };
 
 /**

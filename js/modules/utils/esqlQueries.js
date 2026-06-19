@@ -951,3 +951,181 @@ export async function updateStudentData(studentId, updateData, index = 'students
         throw error;
     }
 }
+
+const BOOSTER_GAWDZILLA_AGENT = 'booster-donor-data';
+
+/**
+ * Maps ESQL result columns/values to row objects.
+ * @param {Object} result - ESQL API response
+ * @returns {Array<Object>}
+ */
+function mapEsqlRows(result) {
+    if (!result?.columns || !result?.values) return [];
+    const columns = result.columns.map((c) => c.name);
+    return result.values.map((row) => {
+        const obj = {};
+        columns.forEach((col, idx) => {
+            obj[col] = row[idx];
+        });
+        return obj;
+    });
+}
+
+/**
+ * Aggregate booster donor portfolio stats from athletic-boosters (gawdzilla).
+ * @param {string} [agentId] - Use 'booster-donor-data' for gawdzilla
+ * @returns {Promise<{donorCount: number|null, avgAffinity: number|null, totalLifetimeGiving: number|null}>}
+ */
+export async function getBoosterDonorStats(agentId = BOOSTER_GAWDZILLA_AGENT) {
+    const query = 'FROM athletic-boosters | STATS avg_affinity = AVG(affinity_score), total_lifetime = SUM(giving_history.lifetime_total), donor_count = COUNT(*) | LIMIT 1';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result.columns || !result.values?.length) {
+            return { donorCount: null, avgAffinity: null, totalLifetimeGiving: null };
+        }
+        const row = result.values[0];
+        const idx = (name) => result.columns.findIndex((c) => c.name === name);
+        return {
+            avgAffinity: idx('avg_affinity') >= 0 ? Number(row[idx('avg_affinity')]) : null,
+            totalLifetimeGiving: idx('total_lifetime') >= 0 ? Number(row[idx('total_lifetime')]) : null,
+            donorCount: idx('donor_count') >= 0 ? Number(row[idx('donor_count')]) : null,
+        };
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            console.warn('athletic-boosters index not found (404).');
+            return { donorCount: null, avgAffinity: null, totalLifetimeGiving: null };
+        }
+        throw error;
+    }
+}
+
+/**
+ * At-risk donors (low affinity or low email engagement) from athletic-boosters.
+ * @param {string} [agentId]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getBoosterAtRiskDonors(agentId = BOOSTER_GAWDZILLA_AGENT) {
+    const query = `FROM athletic-boosters
+| WHERE affinity_score < 40 OR engagement.email_open_rate_90d < 0.2
+| SORT affinity_score ASC
+| KEEP donor_id, first_name, last_name, affinity_score, giving_history.lifetime_total, engagement.email_open_rate_90d, giving_history.last_gift_date
+| LIMIT 25`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/**
+ * At-risk major gift donors (lifetime >= $50k with declining engagement).
+ * @param {string} [agentId]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getBoosterAtRiskMajorGifts(agentId = BOOSTER_GAWDZILLA_AGENT) {
+    const query = `FROM athletic-boosters
+| WHERE giving_history.lifetime_total >= 50000 AND (affinity_score < 45 OR engagement.email_open_rate_90d < 0.15)
+| SORT giving_history.lifetime_total DESC
+| KEEP donor_id, first_name, last_name, affinity_score, giving_history.lifetime_total, giving_history.last_gift_date, engagement.email_open_rate_90d
+| LIMIT 15`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/**
+ * Top affinity donors for athletic advancement intelligence.
+ * @param {string} [agentId]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getBoosterTopAffinityDonors(agentId = BOOSTER_GAWDZILLA_AGENT) {
+    const query = `FROM athletic-boosters
+| SORT affinity_score DESC
+| KEEP donor_id, first_name, last_name, affinity_score, giving_history.lifetime_total, degree, graduation_year, wealth_signals.estimated_capacity
+| LIMIT 10`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/**
+ * Engagement event breakdown from booster-engagement-events.
+ * @param {string} [agentId]
+ * @returns {Promise<Array<{event_type: string, events: number}>>}
+ */
+export async function getBoosterEngagementEventSummary(agentId = BOOSTER_GAWDZILLA_AGENT) {
+    const query = 'FROM booster-engagement-events | STATS events = COUNT(*) BY event_type | SORT events DESC | LIMIT 8';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/**
+ * At-risk case metrics from booster-case-metrics.
+ * @param {string} [agentId]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getBoosterCaseMetrics(agentId = BOOSTER_GAWDZILLA_AGENT) {
+    const query = 'FROM booster-case-metrics | KEEP metric_type, count, severity, tags, @timestamp | LIMIT 20';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/**
+ * Lookup a single donor by donor_id from athletic-boosters.
+ * @param {string} donorId
+ * @param {string} [agentId]
+ * @returns {Promise<Object|null>}
+ */
+export async function getBoosterDonorById(donorId, agentId = BOOSTER_GAWDZILLA_AGENT) {
+    if (!donorId || String(donorId).trim() === '') return null;
+    const escaped = String(donorId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const query = `FROM athletic-boosters | WHERE donor_id == "${escaped}" | KEEP donor_id, first_name, last_name, email, graduation_year, degree, location.city, location.state, giving_history.lifetime_total, giving_history.last_gift_date, engagement.email_open_rate_90d, engagement.game_attendance_count, engagement.events_attended_ytd, wealth_signals.iwave_score, wealth_signals.estimated_capacity, portfolio_status, affinity_score, bio_text | LIMIT 1`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        const rows = mapEsqlRows(result);
+        return rows[0] ?? null;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return null;
+        throw error;
+    }
+}
+
+/**
+ * Recent engagement events for a donor from booster-engagement-events.
+ * @param {string} donorId
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getBoosterDonorEngagementEvents(donorId, agentId = BOOSTER_GAWDZILLA_AGENT, limit = 8) {
+    if (!donorId || String(donorId).trim() === '') return [];
+    const escaped = String(donorId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const query = `FROM booster-engagement-events | WHERE donor_id == "${escaped}" | SORT event_date DESC | KEEP event_type, event_date, campaign, signal_value, fiscal_year | LIMIT ${Math.min(limit, 25)}`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}

@@ -12,11 +12,20 @@ import { maskValue } from './maskValue.js';
 import { tracedFetch } from './tracingHelpers.js';
 
 /** Agent Builder agents served from gawdzilla (OK_KIBANA_URL / OK_KIBANA_API_KEY), not ELASTIC_KB_URL. */
-const GAWDZILLA_AGENT_BUILDER_IDS = new Set(['ok-fraud', 'ok-grants-data']);
+const GAWDZILLA_AGENT_BUILDER_IDS = new Set(['ok-fraud', 'ok-grants-data', 'booster-donor-data']);
+
+/** ESQL / _search on gawdzilla Elasticsearch (OK_ELASTIC_ES_URL proxy path). */
+const GAWDZILLA_ES_AGENT_IDS = new Set(['ok-fraud', 'booster-donor-data']);
 
 function usesGawdzillaAgentBuilder(agentId) {
     return Boolean(agentId && GAWDZILLA_AGENT_BUILDER_IDS.has(String(agentId)));
 }
+
+function usesGawdzillaEs(agentId) {
+    return Boolean(agentId && GAWDZILLA_ES_AGENT_IDS.has(String(agentId)));
+}
+
+export { getApiKeyForAgent, usesGawdzillaAgentBuilder, usesGawdzillaEs };
 
 /** Best-effort summary from Kibana / Agent Builder error JSON or raw text (for UI and logs). */
 function summarizeAgentBuilderErrorBody(errorText) {
@@ -104,7 +113,7 @@ function createAuthHeaders(includeKbnXsrf = false, agentId = '') {
 export async function fetchESQLQuery(query, params = {}, agentId = '') {
     const apiKey = agentId ? getApiKeyForAgent(agentId) : getApiKey();
     if (!apiKey) {
-        throw new Error(agentId === 'ok-fraud'
+        throw new Error(agentId && usesGawdzillaEs(agentId)
             ? 'OK_KIBANA_API_KEY (or ELASTIC_API_KEY) is required for ESQL queries to gawdzilla'
             : 'ELASTIC_API_KEY is required for ESQL queries');
     }
@@ -113,7 +122,7 @@ export async function fetchESQLQuery(query, params = {}, agentId = '') {
     console.log('Executing ESQL query:', { query: query.substring(0, 100) + '...', apiKey: maskedKey });
 
     try {
-        const esPath = agentId === 'ok-fraud' ? '/api/elastic/ok-fraud/es/_query' : '/api/elastic/es/_query';
+        const esPath = usesGawdzillaEs(agentId) ? '/api/elastic/ok-fraud/es/_query' : '/api/elastic/es/_query';
         const response = await tracedFetch(esPath, {
             method: 'POST',
             headers: createAuthHeaders(false, agentId),
@@ -179,8 +188,8 @@ export async function fetchESQLQuery(query, params = {}, agentId = '') {
  * @returns {Promise<Object>} Parsed JSON response
  */
 export async function fetchElasticsearchSearchWithAgent(index, queryBody, agentId = 'ok-fraud') {
-    if (agentId !== 'ok-fraud') {
-        throw new Error('fetchElasticsearchSearchWithAgent currently supports agentId ok-fraud only');
+    if (!usesGawdzillaEs(agentId)) {
+        throw new Error('fetchElasticsearchSearchWithAgent supports gawdzilla agent IDs only (ok-fraud, booster-donor-data)');
     }
     const apiKey = getApiKeyForAgent(agentId);
     if (!apiKey) {

@@ -32,6 +32,45 @@ export default defineConfig({
                 }
             },
             // Proxy for ok-fraud Agent Builder (gawdzilla Kibana) – must be before general /api/elastic
+            '/api/elastic/agent/ok-fraud/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (ok-fraud) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/agent/ok-grants-data/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (ok-grants-data) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/agent/booster-donor-data/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (booster-donor-data) proxy error:', err);
+                    });
+                },
+            },
             '/api/elastic/agent/ok-fraud/chat': {
                 target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
                 changeOrigin: true,
@@ -52,19 +91,29 @@ export default defineConfig({
                     });
                 }
             },
+            '/api/elastic/agent/booster-donor-data/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (booster-donor-data) proxy error:', err);
+                    });
+                }
+            },
             // Proxy for Kibana/Agent Builder API (default: apex)
             '/api/elastic': {
                 target: 'https://apex-dec2025-group4-b01431.kb.us-central1.gcp.elastic.cloud',
                 changeOrigin: true,
                 rewrite: (path) => {
-                    // Map agent chat endpoint to Elastic Agent Builder API
-                    // /api/elastic/agent/{agent_id}/chat -> /api/agent_builder/converse
+                    const streamMatch = path.match(/^\/api\/elastic\/agent\/([^\/]+)\/chat\/stream$/);
+                    if (streamMatch) {
+                        return '/api/agent_builder/converse/async';
+                    }
                     const agentMatch = path.match(/^\/api\/elastic\/agent\/([^\/]+)\/chat$/);
                     if (agentMatch) {
-                        // Agent Builder API endpoint
                         return '/api/agent_builder/converse';
                     }
-                    // For other paths, just remove /api/elastic prefix
                     return path.replace(/^\/api\/elastic/, '');
                 },
                 // Add error handling

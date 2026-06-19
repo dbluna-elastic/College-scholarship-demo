@@ -23,6 +23,8 @@ import OkCommerceCompanyDashboard from './components/OkCommerceCompanyDashboard.
 import OkAgencyStaffDashboard from './components/OkAgencyStaffDashboard.jsx';
 import OkAgencyBusinessScorecard from './components/OkAgencyBusinessScorecard.jsx';
 import StateAgencyGrantsSearch from './components/StateAgencyGrantsSearch.jsx';
+import BoosterEngagementDashboard from './components/BoosterEngagementDashboard.jsx';
+import BoosterDonorScorecard from './components/BoosterDonorScorecard.jsx';
 import OkAgencyPortalHeader from './components/okagency/OkAgencyPortalHeader.jsx';
 import OkAgencyFooter from './components/okagency/OkAgencyFooter.jsx';
 import { getApm, setUserContext, clearUserContext } from '../modules/tracing.js';
@@ -36,6 +38,7 @@ function App() {
     const [headerScrolled, setHeaderScrolled] = useState(false);
     const [fraudRecipientId, setFraudRecipientId] = useState(null);
     const [okagencyBusinessId, setOkagencyBusinessId] = useState(null);
+    const [boosterDonorId, setBoosterDonorId] = useState(null);
 
     useEffect(() => {
         console.log('⚛️ React App mounted with template:', template?.name);
@@ -132,7 +135,13 @@ function App() {
         setUserRole(null);
         setCampusId(null);
         setOkagencyBusinessId(null);
+        setBoosterDonorId(null);
         setActiveSection('home');
+    };
+
+    const handleDonorClick = (donorId) => {
+        setBoosterDonorId(donorId);
+        setActiveSection('booster-donor-scorecard');
     };
 
     if (!template) {
@@ -201,7 +210,29 @@ function App() {
         );
     }
 
+    if (activeSection === 'booster-donor-scorecard' && template?.id === 'texascollege') {
+        return (
+            <BoosterDonorScorecard
+                donorId={boosterDonorId}
+                onBack={() => {
+                    setBoosterDonorId(null);
+                    setActiveSection('counselor-dashboard');
+                }}
+                onLogout={handleLogout}
+                onDonorClick={handleDonorClick}
+            />
+        );
+    }
+
     if (activeSection === 'counselor-dashboard') {
+        if (template?.id === 'texascollege') {
+            return (
+                <BoosterEngagementDashboard
+                    onLogout={handleLogout}
+                    onDonorClick={handleDonorClick}
+                />
+            );
+        }
         if (template?.id === 'okmentalhealth') {
             return (
                 <MentalHealthFraudDashboard

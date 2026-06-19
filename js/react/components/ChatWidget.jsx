@@ -10,8 +10,9 @@ import { useAgentBuilder } from '../hooks/useAgentBuilder.js';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import { useContext } from 'react';
 import { getEnvVar } from '../../modules/utils/getEnvVar.js';
+import DonorChatMessage from './DonorChatMessage.jsx';
 
-function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
+function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDonorClick }) {
     const template = useContext(TemplateContext);
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -38,21 +39,28 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
         content.chatAssistantSubtitle ??
         (agentId === 'ok-fraud'
             ? 'Ask me about fraud detection and compliance'
+            : agentId === 'booster-donor-data'
+            ? 'Ask me about athletic booster and donor engagement data'
             : 'Ask me about scholarships');
     const chatEmptyBody =
         content.chatAssistantEmptyBody ??
         (agentId === 'ok-fraud'
             ? 'Ask about fraud indicators, investigations, or compliance.'
+            : agentId === 'booster-donor-data'
+            ? 'Ask about at-risk donors, major gifts, affinity scores, or engagement trends.'
             : 'Start a conversation by asking about scholarships!');
     const chatEmptyTry =
         content.chatAssistantEmptyTry ??
         (agentId === 'ok-fraud'
             ? 'Try: "What are common fraud indicators?"'
+            : agentId === 'booster-donor-data'
+            ? 'Try: "Who are our at-risk major gift donors?"'
             : 'Try: "What scholarships are available?"');
 
     const {
         messages,
         isLoading,
+        stepStatus,
         error,
         sendMessage,
         clearConversation,
@@ -66,10 +74,10 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
         }
     }, [template?.id]);
 
-    // Auto-scroll to bottom when new messages arrive
+    // Auto-scroll to bottom when new messages arrive or step status updates
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, stepStatus]);
 
     // Focus input when chat opens
     useEffect(() => {
@@ -151,9 +159,9 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
                     </div>
                 )}
 
-                {messages.map((message, index) => (
+                {messages.map((message) => (
                     <div
-                        key={index}
+                        key={message.id ?? message.timestamp}
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
@@ -165,7 +173,20 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
                                     : 'bg-white border border-gray-200 text-gray-900'
                             }`}
                         >
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            {message.role === 'assistant' && onDonorClick ? (
+                                <div className="text-sm whitespace-pre-wrap">
+                                    <DonorChatMessage
+                                        content={message.content}
+                                        onDonorClick={onDonorClick}
+                                        primaryColor={template?.colors?.primary}
+                                    />
+                                </div>
+                            ) : (
+                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            )}
+                            {message.fastPath && (
+                                <p className="text-[10px] uppercase tracking-wide opacity-60 mt-1">Instant data lookup</p>
+                            )}
                             <p className="text-xs opacity-70 mt-1">
                                 {new Date(message.timestamp).toLocaleTimeString()}
                             </p>
@@ -173,7 +194,15 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride }) {
                     </div>
                 ))}
 
-                {isLoading && (
+                {isLoading && stepStatus && (
+                    <div className="flex justify-start">
+                        <div className="bg-white border border-dashed border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600">
+                            {stepStatus}
+                        </div>
+                    </div>
+                )}
+
+                {isLoading && !stepStatus && messages.some((m) => m.streaming && !m.content) && (
                     <div className="flex justify-start">
                         <div className="bg-white border border-gray-200 rounded-lg px-4 py-2">
                             <div className="flex gap-1">
