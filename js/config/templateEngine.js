@@ -183,5 +183,6 @@ export function getTemplateSwitchOptions() {
     return Object.entries(templates).map(([id, t]) => ({
         id,
         name: t.name || id,
+        color: t.colors?.primary || '#5D5FEF',
     }));
 }
