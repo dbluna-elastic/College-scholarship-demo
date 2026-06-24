@@ -8,9 +8,11 @@ import { getSchemaLabels } from '../../config/schemaConfig.js';
 import {
     getBoosterDonorById,
     getBoosterDonorEngagementEvents,
+    getBoosterDonorEngagementTimeline,
 } from '../../modules/utils/esqlQueries.js';
 import {
     buildDonorObservations,
+    appendEngagementDropObservations,
     formatCurrency,
     formatDate,
     formatPercent,
@@ -18,6 +20,8 @@ import {
     phoneToTel,
 } from '../../modules/utils/boosterDonorUtils.js';
 import ChatWidget from './ChatWidget.jsx';
+import BoosterGenerateEmailButton from './BoosterGenerateEmailButton.jsx';
+import DonorEngagementTimeline from './DonorEngagementTimeline.jsx';
 
 const BOOSTER_AGENT = 'booster-donor-data';
 
@@ -38,8 +42,12 @@ function BoosterDonorScorecard({ donorId, onBack, onLogout, onDonorClick }) {
 
     const [donor, setDonor] = useState(null);
     const [events, setEvents] = useState([]);
+    const [timelineEvents, setTimelineEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const timelineConfig = template?.elastic?.engagementTimeline || {};
+    const timelineStartDate = timelineConfig.startDate || '2024-03-01';
 
     useEffect(() => {
         if (!donorId) {
@@ -53,11 +61,13 @@ function BoosterDonorScorecard({ donorId, onBack, onLogout, onDonorClick }) {
         Promise.all([
             getBoosterDonorById(donorId, agentId),
             getBoosterDonorEngagementEvents(donorId, agentId),
+            getBoosterDonorEngagementTimeline(donorId, agentId, timelineStartDate),
         ])
-            .then(([profile, engagementEvents]) => {
+            .then(([profile, engagementEvents, timeline]) => {
                 if (!cancelled) {
                     setDonor(profile);
                     setEvents(engagementEvents);
+                    setTimelineEvents(timeline);
                     setLoading(false);
                 }
             })
@@ -69,9 +79,16 @@ function BoosterDonorScorecard({ donorId, onBack, onLogout, onDonorClick }) {
             });
 
         return () => { cancelled = true; };
-    }, [donorId, agentId]);
+    }, [donorId, agentId, timelineStartDate]);
 
-    const observations = useMemo(() => buildDonorObservations(donor), [donor]);
+    const observations = useMemo(
+        () => appendEngagementDropObservations(
+            buildDonorObservations(donor),
+            timelineEvents,
+            timelineConfig.inflectionDate
+        ),
+        [donor, timelineEvents, timelineConfig.inflectionDate]
+    );
 
     const firstName = getDonorField(donor, 'first_name');
     const lastName = getDonorField(donor, 'last_name');
@@ -154,6 +171,11 @@ function BoosterDonorScorecard({ donorId, onBack, onLogout, onDonorClick }) {
                                     </div>
 
                                     <div className="flex flex-wrap gap-3 mb-8">
+                                        <BoosterGenerateEmailButton
+                                            donorId={donorId}
+                                            recipientEmail={email || ''}
+                                            variant="primary"
+                                        />
                                         {mailto && (
                                             <a
                                                 href={mailto}
@@ -231,8 +253,8 @@ function BoosterDonorScorecard({ donorId, onBack, onLogout, onDonorClick }) {
                                             <ul className="space-y-2">
                                                 {events.map((ev, i) => (
                                                     <li key={i} className="flex justify-between gap-3 text-sm border-b border-gray-100 pb-2">
-                                                        <span className="font-medium text-gray-800 capitalize">
-                                                            {String(getDonorField(ev, 'event_type')).replace(/_/g, ' ')}
+                                                        <span className="font-medium text-gray-800">
+                                                            {getDonorField(ev, 'event_label') || String(getDonorField(ev, 'event_type')).replace(/_/g, ' ')}
                                                         </span>
                                                         <span className="text-gray-500 shrink-0">
                                                             {formatDate(getDonorField(ev, 'event_date'))}
@@ -244,6 +266,17 @@ function BoosterDonorScorecard({ donorId, onBack, onLogout, onDonorClick }) {
                                     </div>
                                 </div>
                             </div>
+
+                            <DonorEngagementTimeline
+                                donor={donor}
+                                events={timelineEvents}
+                                timelineConfig={timelineConfig}
+                                kibanaUrl={template?.elastic?.kibanaUrl}
+                                dashboardId={timelineConfig.dashboardId}
+                                donorId={donorId}
+                                primaryColor={primaryColor}
+                                secondaryColor={secondaryColor}
+                            />
                         </>
                     )}
                 </div>

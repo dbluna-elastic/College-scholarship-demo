@@ -182,6 +182,7 @@ export const okagencyTemplate = {
             primeColEngagement: 'Last touch',
             primeColProfile: 'NAICS / size',
             actionEmail: 'Email',
+            generateProgramEmailLabel: 'Email',
             actionCall: 'Call',
             actionSchedule: 'Schedule',
             actionRefer: 'Refer to program',
@@ -307,10 +308,16 @@ export const okagencyTemplate = {
         /** Find Grants results: _search on gawdzilla (ok-fraud proxy + OK_KIBANA_API_KEY) */
         grantsDataIndex: 'ok-grant-data',
         grantsDataAgentId: 'ok-fraud',
-        grantsSearchSize: 10,
+        grantsSearchSize: 500,
         /** Company dashboard “Match grant applications” table: up to this many rows from the same index */
         dashboardGrantsMin: 2,
         dashboardGrantsMax: 5,
+        workflows: {
+            programEmail: {
+                workflowId: 'ok-grant-program-officer-email',
+                toolId: 'ok-grants-program-email-workflow',
+            },
+        },
     },
 
     search: {
@@ -405,4 +412,15 @@ export const okagencyTemplate = {
         { id: 'g24', title: 'Public Library Digital Inclusion', description: 'Devices and hotspots for library patrons.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: false, matchFunding: 'No', agency: 'education', category: 'education', eligibleApplicant: 'public', disbursementMethod: 'reimbursement', deadline: '2026-05-30', openDate: '2026-01-25', estimatedTotal: 2800000, rangeLowHigh: '$15K – $120K' },
         { id: 'g25', title: 'Mobile Crisis Unit Equipment', description: 'Vehicles and telehealth kits for behavioral health response.', status: 'active', postAwardInfo: true, isLoan: false, matchRequired: true, matchFunding: '15%', agency: 'health', category: 'health', eligibleApplicant: 'public', disbursementMethod: 'mixed', deadline: '2026-08-30', openDate: '2026-03-10', estimatedTotal: 11000000, rangeLowHigh: '$250K – $1.5M' },
     ],
+
+    login: {
+        headline: 'Find grants, track programs, and grow Oklahoma businesses.',
+        ssoButtonLabel: 'SSO through employer',
+        features: [
+            'Search active and forecasted state grant opportunities',
+            'Filter by agency, category, and eligible applicant type',
+            'Review deadlines, match requirements, and funding ranges',
+            'Access program dashboards after authorized sign-in',
+        ],
+    },
 };

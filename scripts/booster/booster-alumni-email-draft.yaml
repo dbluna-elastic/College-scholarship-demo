@@ -1,0 +1,55 @@
+version: '1'
+name: Texas College Alumni Outreach Email
+description: Fetch athletic booster donor data and draft a personalized alumni outreach email.
+enabled: true
+inputs:
+  - name: donor_id
+    type: string
+    required: true
+  - name: recipient_email
+    type: string
+    required: false
+    default: ""
+triggers:
+  - type: manual
+steps:
+  - name: fetch_donor
+    type: elasticsearch.esql.query
+    with:
+      format: json
+      query: |
+        FROM athletic-boosters
+        | WHERE donor_id == "{{ inputs.donor_id }}"
+        | KEEP donor_id, first_name, last_name, email, graduation_year, degree, affinity_score, giving_history.lifetime_total, giving_history.last_gift_date, engagement.email_open_rate_90d, engagement.game_attendance_count, engagement.events_attended_ytd, portfolio_status, wealth_signals.iwave_score, bio_text
+        | LIMIT 1
+  - name: fetch_engagement
+    type: elasticsearch.esql.query
+    with:
+      format: json
+      query: |
+        FROM booster-engagement-events
+        | WHERE donor_id == "{{ inputs.donor_id }}"
+        | SORT event_date DESC
+        | KEEP event_date, event_type, event_label, event_category
+        | LIMIT 8
+  - name: draft_email
+    type: ai.prompt
+    connector-id: Google-Gemini-2-5-Flash
+    with:
+      prompt: |
+        You are a Texas College Athletics advancement officer writing to an alumni booster donor.
+        Draft a warm, personalized outreach email TO the donor (not an internal memo).
+        Format exactly as:
+        Subject: <one line subject>
+
+        <email body in plain text, no markdown — use the donor's first name>
+
+        Donor profile: {{ steps.fetch_donor.output | json }}
+        Recent engagement: {{ steps.fetch_engagement.output | json }}
+
+        Under 220 words. Thank them for past support, reference affinity/engagement signals,
+        and invite continued involvement with Texas College athletics. If they appear at-risk
+        (low email opens or affinity), use a re-engagement tone without being alarmist.
+outputs:
+  email_text: "{{ steps.draft_email.output.text }}"
+  recipient_email: "{{ inputs.recipient_email }}"

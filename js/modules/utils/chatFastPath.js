@@ -1,5 +1,5 @@
 /**
- * Hybrid fast path: answer common booster donor questions via direct ESQL
+ * Hybrid fast path: answer common chat questions via direct data lookups
  * instead of the full Agent Builder loop.
  */
 
@@ -12,6 +12,9 @@ import {
     getBoosterCaseMetrics,
     getBoosterDonorById,
 } from './esqlQueries.js';
+import { tryGrantsChatFastPath, GRANTS_AGENT } from './grantsChatFastPath.js';
+import { tryFraudChatFastPath, FRAUD_AGENT } from './fraudChatFastPath.js';
+import { tryOjaChatFastPath, OJA_AGENT } from './ojaChatFastPath.js';
 
 const BOOSTER_AGENT = 'booster-donor-data';
 
@@ -20,7 +23,7 @@ const BOOSTER_AGENT = 'booster-donor-data';
  * @returns {boolean}
  */
 export function canUseChatFastPath(agentId) {
-    return agentId === BOOSTER_AGENT;
+    return agentId === BOOSTER_AGENT || agentId === GRANTS_AGENT || agentId === FRAUD_AGENT || agentId === OJA_AGENT;
 }
 
 function formatCurrency(value) {
@@ -92,6 +95,19 @@ function donorLink(row) {
  * @returns {Promise<{ output: string }|null>}
  */
 export async function tryChatFastPath(agentId, message) {
+    if (agentId === GRANTS_AGENT) {
+        return tryGrantsChatFastPath(agentId, message);
+    }
+
+    if (agentId === FRAUD_AGENT) {
+        return tryFraudChatFastPath(agentId, message);
+    }
+
+    if (agentId === OJA_AGENT) {
+        return tryOjaChatFastPath(agentId, message);
+    }
+
+    if (agentId !== BOOSTER_AGENT) return null;
 
     const intent = matchBoosterIntent(message);
     if (!intent) return null;

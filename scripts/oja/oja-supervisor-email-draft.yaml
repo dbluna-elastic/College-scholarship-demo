@@ -1,0 +1,62 @@
+version: '1'
+name: OJA Supervisor Email Draft
+description: Fetch youth supervision data and draft a supervisor email.
+enabled: true
+inputs:
+  - name: youth_id
+    type: string
+    required: true
+  - name: recipient_email
+    type: string
+    required: false
+    default: ""
+triggers:
+  - type: manual
+steps:
+  - name: fetch_profile
+    type: elasticsearch.esql.query
+    with:
+      format: json
+      query: |
+        FROM youth_profiles
+        | WHERE youth_id == "{{ inputs.youth_id }}"
+        | KEEP youth_id, first_name, last_name, case_status, supervision_level, primary_offense, county, assigned_officer, mental_health_flag, substance_abuse_flag, intake_date
+        | LIMIT 1
+  - name: fetch_assessment
+    type: elasticsearch.esql.query
+    with:
+      format: json
+      query: |
+        FROM assessments
+        | WHERE youth_id == "{{ inputs.youth_id }}"
+        | SORT assessment_date DESC
+        | KEEP assessment_type, assessment_date, overall_risk_score, risk_level, recommended_supervision
+        | LIMIT 1
+  - name: fetch_notes
+    type: elasticsearch.esql.query
+    with:
+      format: json
+      query: |
+        FROM case_notes
+        | WHERE youth_id == "{{ inputs.youth_id }}"
+        | SORT note_date DESC
+        | KEEP note_date, note_type, subject, sentiment, follow_up_required
+        | LIMIT 3
+  - name: draft_email
+    type: ai.prompt
+    connector-id: Google-Gemini-2-5-Flash
+    with:
+      prompt: |
+        Draft a professional internal email for an OJA district supervisor about this youth.
+        Format exactly as:
+        Subject: <one line subject>
+
+        <email body in plain text, no markdown>
+
+        Profile: {{ steps.fetch_profile.output | json }}
+        Assessment: {{ steps.fetch_assessment.output | json }}
+        Recent notes: {{ steps.fetch_notes.output | json }}
+        Under 250 words. Include risk level, supervision needs, county, assigned officer, and recommended follow-up.
+outputs:
+  email_text: "{{ steps.draft_email.output.text }}"
+  recipient_email: "{{ inputs.recipient_email }}"

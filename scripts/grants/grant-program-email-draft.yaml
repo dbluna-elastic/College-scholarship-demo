@@ -1,0 +1,63 @@
+version: '1'
+name: OK Grant Program Officer Email
+description: Fetch open grant program context and draft a program-officer outreach email to an award recipient.
+enabled: true
+inputs:
+  - name: business_id
+    type: string
+    required: true
+  - name: business_name
+    type: string
+    required: true
+  - name: award_id
+    type: string
+    required: true
+  - name: compliance_alert
+    type: string
+    required: false
+    default: ""
+  - name: financial_status
+    type: string
+    required: false
+    default: ""
+  - name: recipient_email
+    type: string
+    required: false
+    default: ""
+triggers:
+  - type: manual
+steps:
+  - name: fetch_open_grants
+    type: elasticsearch.esql.query
+    with:
+      format: json
+      query: |
+        FROM ok-grant-data
+        | WHERE status == "active"
+        | SORT application_deadline DESC NULLS LAST
+        | KEEP title, agency, categories, application_deadline, description, grant_url
+        | LIMIT 5
+  - name: draft_email
+    type: ai.prompt
+    connector-id: Google-Gemini-2-5-Flash
+    with:
+      prompt: |
+        You are an Oklahoma state grant program officer writing to a business awardee about compliance, renewal, or disbursement follow-up.
+        Draft a professional outreach email TO the business contact (not an internal memo).
+        Format exactly as:
+        Subject: <one line subject>
+
+        <email body in plain text, no markdown — greet using the business name>
+
+        Business ID: {{ inputs.business_id }}
+        Business name: {{ inputs.business_name }}
+        Award ID: {{ inputs.award_id }}
+        Compliance / renewal alert: {{ inputs.compliance_alert }}
+        Match & disbursement status: {{ inputs.financial_status }}
+
+        Related open state grant programs (for context only): {{ steps.fetch_open_grants.output | json }}
+
+        Under 220 words. Reference the specific award ID and alert. Be clear about required actions, deadlines, and where to upload documents in the agency portal. Tone: supportive but firm on compliance.
+outputs:
+  email_text: "{{ steps.draft_email.output.text }}"
+  recipient_email: "{{ inputs.recipient_email }}"

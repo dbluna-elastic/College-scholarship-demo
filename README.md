@@ -42,11 +42,21 @@ Multi-tenant college scholarship application built with Vite, React, and Docker.
 
 ### Environment Variables
 
-Required environment variables (see `env.template`):
-- `ELASTIC_ES_URL` - Elasticsearch instance URL
-- `ELASTIC_KB_URL` - Kibana instance URL
-- `ELASTIC_API_KEY` - Elastic Cloud API key (never commit to git)
-- `ELASTIC_AGENT_ID` - Optional Agent Builder agent ID
+Required environment variables (see `env.template`). **This demo defaults to a single Gawdzilla Elastic Cloud deployment** (`gawdzilla-0d3e9e`):
+
+- `ELASTIC_ES_URL` - Elasticsearch URL (Gawdzilla ES)
+- `ELASTIC_KB_URL` - Kibana URL (Gawdzilla Kibana — `studentcounselor` agent)
+- `ELASTIC_API_KEY` - API key for ES + Kibana on Gawdzilla (can match `OK_KIBANA_API_KEY`)
+- `OK_KIBANA_URL` / `OK_KIBANA_API_KEY` - Same deployment; used for ok-fraud, grants, booster agents
+- `ELASTIC_AGENT_ID` - Optional Agent Builder agent ID override
+
+**Migrating from Apex:** If you still have data on the legacy Apex cluster, run:
+
+```bash
+python3 scripts/migrate-apex-to-gawdzilla/migrate.py
+```
+
+See `scripts/migrate-apex-to-gawdzilla/README.md` for details.
 
 ### Project Structure
 

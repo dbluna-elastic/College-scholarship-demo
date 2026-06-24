@@ -195,6 +195,25 @@ export async function getStudentData(studentId, preferredIndex = 'students') {
             console.log(`Student found in index '${preferredIndex}'`);
             return mapped;
         }
+
+        // Fallback: numeric login / student_id
+        if (/^\d+$/.test(String(studentId).trim())) {
+            const idQuery = `FROM ${preferredIndex} | WHERE student_id == ${String(studentId).trim()} | LIMIT 1`;
+            const idResult = await fetchESQLQuery(idQuery);
+            const idMapped = mapESQLResponse(idResult, preferredIndex);
+            if (idMapped) return idMapped;
+        }
+
+        // Fallback: case-insensitive partial name
+        const likeQuery = `FROM ${preferredIndex} | WHERE full_name LIKE "*${escapedStudentId}*" | LIMIT 1`;
+        try {
+            const likeResult = await fetchESQLQuery(likeQuery);
+            const likeMapped = mapESQLResponse(likeResult, preferredIndex);
+            if (likeMapped) return likeMapped;
+        } catch {
+            /* LIKE may not match all field types — ignore */
+        }
+
         // No results found
         console.log(`No student found in index '${preferredIndex}'`);
         return {
@@ -585,7 +604,7 @@ function grantField(obj, ...keys) {
 }
 
 /** Normalize _source hit into StateAgencyGrantsSearch row shape (flexible field names). */
-function mapElasticsearchGrantHitToRow(hit) {
+export function mapElasticsearchGrantHitToRow(hit) {
     const s = hit._source || {};
     const id = hit._id || grantField(s, 'Portal_ID', 'portal_id', 'Grant_Program_ID', 'grant_program_id', 'id', 'grant_id');
     const title =
@@ -952,6 +971,110 @@ export async function updateStudentData(studentId, updateData, index = 'students
     }
 }
 
+/**
+ * Run ESQL against students index and return row objects.
+ * @param {string} query
+ * @returns {Promise<Array<Object>>}
+ */
+async function runStudentsEsql(query) {
+    try {
+        const result = await fetchESQLQuery(query);
+        if (!result?.columns || !result?.values) return [];
+        const columns = result.columns.map((c) => c.name);
+        return result.values.map((row) => {
+            const obj = {};
+            columns.forEach((col, idx) => {
+                obj[col] = row[idx];
+            });
+            return obj;
+        });
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @returns {Promise<Array<Object>>} */
+export async function searchHighPriorityStudents() {
+    const query = `FROM students
+| WHERE full_name IS NOT NULL AND (risk_label == "Critical" OR risk_label == "At-Risk")
+| SORT risk_score_normalized DESC
+| LIMIT 20`;
+    const rows = await runStudentsEsql(query);
+    return rows.filter((s) => s.full_name?.trim());
+}
+
+/** @returns {Promise<Array<Object>>} */
+export async function searchPrimeScholarshipCandidates() {
+    const query = `FROM students
+| WHERE full_name IS NOT NULL AND sai_value < 10000 AND lms_activity_score > 60 AND cumulative_gpa > 2.5
+| KEEP full_name, sai_value, lms_activity_score, cumulative_gpa
+| LIMIT 8`;
+    return runStudentsEsql(query);
+}
+
+/** @returns {Promise<Array<Object>>} */
+export async function searchCriticalRiskStudents() {
+    const query = `FROM students
+| WHERE full_name IS NOT NULL AND risk_label == "Critical"
+| SORT risk_score_normalized DESC
+| KEEP full_name, risk_score_normalized
+| LIMIT 10`;
+    return runStudentsEsql(query);
+}
+
+/** @param {number} [limit] @returns {Promise<Array<Object>>} */
+export async function getRandomStudents(limit = 3) {
+    const query = `FROM students | WHERE full_name IS NOT NULL | KEEP full_name | LIMIT ${Math.min(limit, 10)}`;
+    return runStudentsEsql(query);
+}
+
+/** @returns {Promise<Array<Object>>} */
+export async function getAllStudentsForNavigation() {
+    const query = `FROM students | WHERE full_name IS NOT NULL | KEEP full_name | SORT full_name ASC | LIMIT 500`;
+    return runStudentsEsql(query);
+}
+
+/**
+ * Load a random student profile from Gawdzilla for demo / quick login.
+ * @returns {Promise<Object>} Same shape as getStudentData()
+ */
+export async function getRandomStudentProfile() {
+    const pool = await runStudentsEsql(
+        `FROM students | WHERE full_name IS NOT NULL | KEEP full_name | LIMIT 50`
+    );
+    if (!pool.length) {
+        return { student: null, found: false, index: null, documentId: null };
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    return getStudentData(pick.full_name);
+}
+
+/**
+ * Resolve login campus ID to a student document (Gawdzilla students index).
+ * Quick-login ids like "student" load a random profile from the cluster.
+ * @param {string} loginId
+ * @returns {Promise<Object>}
+ */
+export async function resolveStudentForLogin(loginId) {
+    const trimmed = String(loginId || '').trim();
+    if (!trimmed) {
+        return getRandomStudentProfile();
+    }
+
+    const direct = await getStudentData(trimmed);
+    if (direct.found && direct.student) {
+        return direct;
+    }
+
+    const genericLogin = /^(student|demo|test|guest)$/i.test(trimmed);
+    if (genericLogin || trimmed.length < 3) {
+        return getRandomStudentProfile();
+    }
+
+    return getRandomStudentProfile();
+}
+
 const BOOSTER_GAWDZILLA_AGENT = 'booster-donor-data';
 
 /**
@@ -1120,7 +1243,7 @@ export async function getBoosterDonorById(donorId, agentId = BOOSTER_GAWDZILLA_A
 export async function getBoosterDonorEngagementEvents(donorId, agentId = BOOSTER_GAWDZILLA_AGENT, limit = 8) {
     if (!donorId || String(donorId).trim() === '') return [];
     const escaped = String(donorId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    const query = `FROM booster-engagement-events | WHERE donor_id == "${escaped}" | SORT event_date DESC | KEEP event_type, event_date, campaign, signal_value, fiscal_year | LIMIT ${Math.min(limit, 25)}`;
+    const query = `FROM booster-engagement-events | WHERE donor_id == "${escaped}" | SORT event_date DESC | KEEP event_type, event_date, event_category, event_label, campaign, signal_value, baseline_value, delta_from_baseline, fiscal_year | LIMIT ${Math.min(limit, 25)}`;
     try {
         const result = await fetchESQLQuery(query, {}, agentId);
         return mapEsqlRows(result);
@@ -1128,4 +1251,318 @@ export async function getBoosterDonorEngagementEvents(donorId, agentId = BOOSTER
         if (error.isIndexNotFound || error.status === 404) return [];
         throw error;
     }
+}
+
+/**
+ * Daily engagement timeline for a donor (email, attendance, login signals).
+ * @param {string} donorId
+ * @param {string} [agentId]
+ * @param {string} [startDate] - ISO date lower bound
+ * @param {number} [limit]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getBoosterDonorEngagementTimeline(donorId, agentId = BOOSTER_GAWDZILLA_AGENT, startDate = '2024-03-01', limit = 10000) {
+    if (!donorId || String(donorId).trim() === '') return [];
+    const escaped = String(donorId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const query = `FROM booster-engagement-events | WHERE donor_id == "${escaped}" AND event_date >= "${startDate}" | KEEP event_date, event_type, event_category, event_label, signal_value, baseline_value, delta_from_baseline, campaign | SORT event_date ASC | LIMIT ${Math.min(limit, 10000)}`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+const OK_FRAUD_AGENT = 'ok-fraud';
+
+async function runOkFraudEsql(query) {
+    try {
+        const result = await fetchESQLQuery(query, {}, OK_FRAUD_AGENT);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return null;
+        throw error;
+    }
+}
+
+/**
+ * High-risk fraud claims count (Risk_Score >= 75).
+ * @param {string} [agentId]
+ * @returns {Promise<number|null>}
+ */
+export async function getFraudHighRiskClaimCount(agentId = OK_FRAUD_AGENT) {
+    const query = 'FROM ok-fraud* | WHERE Risk_Score >= 75 | STATS high_risk = COUNT(*) | LIMIT 1';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result?.values?.length) return null;
+        const idx = result.columns.findIndex((c) => c.name === 'high_risk');
+        return idx >= 0 ? Number(result.values[0][idx]) : null;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return null;
+        throw error;
+    }
+}
+
+/**
+ * Loss totals grouped by Flag_Type.
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<{Flag_Type: string, total_loss: number}>>}
+ */
+export async function getFraudLossByFlagType(agentId = OK_FRAUD_AGENT, limit = 5) {
+    const query = `FROM ok-fraud* | WHERE Flag_Type IS NOT NULL | STATS total_loss = SUM(Total_Loss_Value) BY Flag_Type | SORT total_loss DESC | LIMIT ${Math.min(limit, 20)}`;
+    const rows = await runOkFraudEsql(query);
+    return rows ?? [];
+}
+
+/**
+ * Investigation resolution rate: share of flagged claims with an assigned investigator.
+ * @param {string} [agentId]
+ * @returns {Promise<number|null>} 0–100 percent
+ */
+export async function getFraudInvestigationResolutionRate(agentId = OK_FRAUD_AGENT) {
+    const query = `FROM ok-fraud* | WHERE Flag_Type IS NOT NULL
+| STATS total = COUNT(*), assigned = COUNT(Investigator_Assigned)
+| EVAL resolution_pct = CASE(total > 0, assigned * 100.0 / total, null)
+| LIMIT 1`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result?.values?.length) return null;
+        const idx = result.columns.findIndex((c) => c.name === 'resolution_pct');
+        const val = idx >= 0 ? Number(result.values[0][idx]) : null;
+        return Number.isFinite(val) ? Math.round(val) : null;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return null;
+        throw error;
+    }
+}
+
+/**
+ * Crisis call center KPIs from ok-* indices.
+ * @param {string} [agentId]
+ * @returns {Promise<{avgAnswerSeconds: number|null, totalCalls: number|null, avgMcotSeconds: number|null}>}
+ */
+export async function getCrisisCallCenterStats(agentId = OK_FRAUD_AGENT) {
+    const answerQuery = `FROM ok-* | WHERE Call_Start_Timestamp IS NOT NULL AND Call_Answer_Timestamp IS NOT NULL
+| EVAL answer_seconds = DATE_DIFF("s", Call_Start_Timestamp, Call_Answer_Timestamp)
+| STATS avg_answer = AVG(answer_seconds), calls = COUNT(*)
+| LIMIT 1`;
+    const mcotQuery = `FROM ok-* | WHERE Arrival_Timestamp IS NOT NULL AND Dispatch_Timestamp IS NOT NULL
+| EVAL mcot_seconds = DATE_DIFF("s", Dispatch_Timestamp, Arrival_Timestamp)
+| STATS avg_mcot = AVG(mcot_seconds)
+| LIMIT 1`;
+    try {
+        const [answerResult, mcotResult] = await Promise.all([
+            fetchESQLQuery(answerQuery, {}, agentId),
+            fetchESQLQuery(mcotQuery, {}, agentId),
+        ]);
+        const aIdx = answerResult.columns?.findIndex((c) => c.name === 'avg_answer') ?? -1;
+        const cIdx = answerResult.columns?.findIndex((c) => c.name === 'calls') ?? -1;
+        const mIdx = mcotResult.columns?.findIndex((c) => c.name === 'avg_mcot') ?? -1;
+        return {
+            avgAnswerSeconds: aIdx >= 0 ? Number(answerResult.values?.[0]?.[aIdx]) : null,
+            totalCalls: cIdx >= 0 ? Number(answerResult.values?.[0]?.[cIdx]) : null,
+            avgMcotSeconds: mIdx >= 0 ? Number(mcotResult.values?.[0]?.[mIdx]) : null,
+        };
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            return { avgAnswerSeconds: null, totalCalls: null, avgMcotSeconds: null };
+        }
+        throw error;
+    }
+}
+
+/**
+ * Call disposition breakdown for crisis operations.
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<{Call_Disposition_Code: string, cnt: number}>>}
+ */
+export async function getCrisisCallDispositions(agentId = OK_FRAUD_AGENT, limit = 8) {
+    const query = `FROM ok-* | WHERE Call_Disposition_Code IS NOT NULL | STATS cnt = COUNT(*) BY Call_Disposition_Code | SORT cnt DESC | LIMIT ${Math.min(limit, 20)}`;
+    const rows = await runOkFraudEsql(query);
+    return rows ?? [];
+}
+
+/**
+ * MCOT outcome breakdown.
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<{MCOT_Outcome_Code: string, cnt: number}>>}
+ */
+export async function getCrisisMcotOutcomes(agentId = OK_FRAUD_AGENT, limit = 8) {
+    const query = `FROM ok-* | WHERE MCOT_Outcome_Code IS NOT NULL | STATS cnt = COUNT(*) BY MCOT_Outcome_Code | SORT cnt DESC | LIMIT ${Math.min(limit, 20)}`;
+    const rows = await runOkFraudEsql(query);
+    return rows ?? [];
+}
+
+/**
+ * Discharge housing status breakdown.
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<{Discharge_Housing_Status: string, cnt: number}>>}
+ */
+export async function getCrisisHousingAtDischarge(agentId = OK_FRAUD_AGENT, limit = 8) {
+    const query = `FROM ok-* | WHERE Discharge_Housing_Status IS NOT NULL | STATS cnt = COUNT(*) BY Discharge_Housing_Status | SORT cnt DESC | LIMIT ${Math.min(limit, 20)}`;
+    const rows = await runOkFraudEsql(query);
+    return rows ?? [];
+}
+
+/**
+ * Statewide relapse rate from ok-* client outcome records.
+ * @param {string} [agentId]
+ * @returns {Promise<number|null>} 0–100 percent
+ */
+export async function getClinicalStatewideRelapseRate(agentId = OK_FRAUD_AGENT) {
+    const query = `FROM ok-* | WHERE Relapse_Occurred IS NOT NULL
+| STATS relapse_rate = AVG(CASE(Relapse_Occurred == true, 1.0, 0.0))
+| LIMIT 1`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result?.values?.length) return null;
+        const idx = result.columns.findIndex((c) => c.name === 'relapse_rate');
+        const val = idx >= 0 ? Number(result.values[0][idx]) : null;
+        return Number.isFinite(val) ? Math.round(val * 100) : null;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return null;
+        throw error;
+    }
+}
+
+/**
+ * Relapse rate by county (top counties by rate).
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<{County_Of_Relapse: string, relapse_rate: number}>>}
+ */
+export async function getClinicalRelapseByCounty(agentId = OK_FRAUD_AGENT, limit = 10) {
+    const query = `FROM ok-* | WHERE County_Of_Relapse IS NOT NULL
+| STATS relapse_rate = AVG(CASE(Relapse_Occurred == true, 1.0, 0.0)) BY County_Of_Relapse
+| SORT relapse_rate DESC
+| LIMIT ${Math.min(limit, 25)}`;
+    const rows = await runOkFraudEsql(query);
+    return rows ?? [];
+}
+
+/**
+ * Primary substance breakdown from ok-client.
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<{primary_substance: string, cnt: number}>>}
+ */
+export async function getClinicalSubstanceBreakdown(agentId = OK_FRAUD_AGENT, limit = 10) {
+    const query = `FROM ok-client | WHERE primary_substance IS NOT NULL | STATS cnt = COUNT(*) BY primary_substance | SORT cnt DESC | LIMIT ${Math.min(limit, 20)}`;
+    const rows = await runOkFraudEsql(query);
+    return rows ?? [];
+}
+
+/**
+ * Active client count from ok-client.
+ * @param {string} [agentId]
+ * @returns {Promise<number|null>}
+ */
+export async function getClinicalActiveClientCount(agentId = OK_FRAUD_AGENT) {
+    const query = 'FROM ok-client | WHERE status == "Active" | STATS active = COUNT(*) | LIMIT 1';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result?.values?.length) return null;
+        const idx = result.columns.findIndex((c) => c.name === 'active');
+        return idx >= 0 ? Number(result.values[0][idx]) : null;
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return null;
+        throw error;
+    }
+}
+
+/**
+ * Client rows for clinical outcomes table.
+ * @param {string} [agentId]
+ * @param {number} [limit]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getClinicalClientList(agentId = OK_FRAUD_AGENT, limit = 25) {
+    const query = `FROM ok-client
+| KEEP Client_ID, Name, county, primary_substance, status, @timestamp
+| SORT @timestamp DESC
+| LIMIT ${Math.min(limit, 100)}`;
+    const rows = await runOkFraudEsql(query);
+    return rows ?? [];
+}
+
+/**
+ * Client detail and outcome history.
+ * @param {string} clientId
+ * @param {string} [agentId]
+ * @returns {Promise<{profile: Object|null, outcomes: Array<Object>}>}
+ */
+export async function getClinicalClientDetail(clientId, agentId = OK_FRAUD_AGENT) {
+    if (!clientId || String(clientId).trim() === '') {
+        return { profile: null, outcomes: [] };
+    }
+    const escaped = String(clientId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const profileQuery = `FROM ok-client | WHERE Client_ID == "${escaped}" | LIMIT 1`;
+    const outcomesQuery = `FROM ok-* | WHERE Client_ID == "${escaped}" AND Relapse_Occurred IS NOT NULL
+| KEEP @timestamp, Client_ID, County_Of_Relapse, Relapse_Occurred, primary_substance, status
+| SORT @timestamp DESC
+| LIMIT 50`;
+    try {
+        const [profileResult, outcomesResult] = await Promise.all([
+            fetchESQLQuery(profileQuery, {}, agentId),
+            fetchESQLQuery(outcomesQuery, {}, agentId),
+        ]);
+        const profileRows = mapEsqlRows(profileResult);
+        return {
+            profile: profileRows[0] ?? null,
+            outcomes: mapEsqlRows(outcomesResult),
+        };
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            return { profile: null, outcomes: [] };
+        }
+        throw error;
+    }
+}
+
+/**
+ * Grant portfolio stats for health-focused programs (ok-grant-data).
+ * @param {Object} [template]
+ * @returns {Promise<{active: number|null, forecasted: number|null, closed: number|null, total: number|null}>}
+ */
+export async function getOkGrantPortfolioStats(template) {
+    const elastic = template?.elastic || {};
+    const index = elastic.grantsDataIndex || 'ok-grant-data';
+    const agentId = elastic.grantsDataAgentId || OK_FRAUD_AGENT;
+    const query = `FROM ${index} | STATS total = COUNT(*), active = COUNT(CASE(status == "active", 1, null)), forecasted = COUNT(CASE(status == "forecasted", 1, null)), closed = COUNT(CASE(status == "closed", 1, null)) | LIMIT 1`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        if (!result?.values?.length) {
+            return { active: null, forecasted: null, closed: null, total: null };
+        }
+        const row = result.values[0];
+        const idx = (name) => result.columns.findIndex((c) => c.name === name);
+        return {
+            total: idx('total') >= 0 ? Number(row[idx('total')]) : null,
+            active: idx('active') >= 0 ? Number(row[idx('active')]) : null,
+            forecasted: idx('forecasted') >= 0 ? Number(row[idx('forecasted')]) : null,
+            closed: idx('closed') >= 0 ? Number(row[idx('closed')]) : null,
+        };
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            return { active: null, forecasted: null, closed: null, total: null };
+        }
+        throw error;
+    }
+}
+
+/**
+ * Active health-category grant count (catalog fallback when index fields differ).
+ * @param {Object} [template]
+ * @returns {Promise<number|null>}
+ */
+export async function getOkHealthGrantCount(template) {
+    const stats = await getOkGrantPortfolioStats(template);
+    if (stats.active != null) return stats.active;
+    const catalog = template?.grantsCatalog || [];
+    return catalog.filter((g) => g.status === 'active' && g.category === 'health').length;
 }

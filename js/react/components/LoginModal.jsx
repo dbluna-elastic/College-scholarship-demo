@@ -1,13 +1,62 @@
 /**
- * LoginModal - Login modal component matching GSU login design
- * 
- * Two-column layout with login form on left and security information on right.
- * Handles authentication based on password (test = student, staff = counselor).
+ * LoginModal - Origin-inspired sign-in modal with template-aware styling.
+ *
+ * Two-column layout: form on the left, feature highlights on the right.
+ * Handles authentication based on password (test = primary role, staff = staff role).
  */
 
 import { useState, useContext } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
-import { getSchemaLabels } from '../../config/schemaConfig.js';
+import { getSchemaLabels, getLoginConfig } from '../../config/schemaConfig.js';
+
+function FloatingInput({ id, label, type = 'text', value, onChange, autoComplete, trailing, accentColor = '#003087' }) {
+    return (
+        <div className="relative">
+            <input
+                id={id}
+                type={type}
+                value={value}
+                onChange={onChange}
+                autoComplete={autoComplete}
+                placeholder=" "
+                className="peer w-full rounded-2xl border border-gray-300 bg-white px-4 pb-2.5 pt-6 text-sm text-gray-900 outline-none transition-colors focus:ring-1"
+                style={{ '--input-accent': accentColor }}
+                onFocus={(e) => {
+                    e.currentTarget.style.borderColor = accentColor;
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${accentColor}`;
+                }}
+                onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '';
+                    e.currentTarget.style.boxShadow = '';
+                }}
+            />
+            <label
+                htmlFor={id}
+                className="pointer-events-none absolute left-4 top-4 origin-left text-xs font-medium uppercase tracking-wide text-gray-500 transition-all peer-focus:top-2 peer-focus:scale-90 peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:scale-90"
+            >
+                {label}
+            </label>
+            {trailing && (
+                <div className="absolute inset-y-0 right-3 flex items-center">
+                    {trailing}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function CheckIcon({ color }) {
+    return (
+        <span
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+            style={{ backgroundColor: color, color: '#fff' }}
+        >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+        </span>
+    );
+}
 
 function LoginModal({ isOpen, onClose, onLogin }) {
     const template = useContext(TemplateContext);
@@ -18,13 +67,19 @@ function LoginModal({ isOpen, onClose, onLogin }) {
 
     if (!isOpen) return null;
 
+    const labels = getSchemaLabels(template);
+    const login = getLoginConfig(template);
+    const primary = template?.colors?.primary || '#003087';
+    const secondary = template?.colors?.secondary || '#2E7D32';
+    const panelTint = `color-mix(in srgb, ${secondary} 18%, white)`;
+    const headingFont = template?.typography?.fontFamily || 'var(--serif-font, Georgia, serif)';
+
     const handleSubmit = (e) => {
         e.preventDefault();
         setError('');
 
-        const labels = getSchemaLabels(template);
         if (!campusId.trim() || !password.trim()) {
-            setError(`Please enter both ${labels.idLabel} and Password`);
+            setError(`Please enter both ${labels.idLabel} and password`);
             return;
         }
 
@@ -35,6 +90,11 @@ function LoginModal({ isOpen, onClose, onLogin }) {
         }
     };
 
+    const handleSsoLogin = () => {
+        setError('');
+        onLogin(campusId.trim(), 'staff');
+    };
+
     const handleClose = () => {
         setCampusId('');
         setPassword('');
@@ -43,148 +103,177 @@ function LoginModal({ isOpen, onClose, onLogin }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
-            <div 
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                 onClick={handleClose}
-            ></div>
+                aria-hidden="true"
+            />
 
-            {/* Modal Content */}
-            <div className="relative bg-white rounded-lg shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                {/* Close Button */}
+            <div
+                className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.35)] md:flex-row"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="login-modal-title"
+            >
                 <button
+                    type="button"
                     onClick={handleClose}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-10"
+                    className="absolute right-4 top-4 z-20 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Close sign in"
                 >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
 
-                {/* Agency or University Name Header */}
-                <div className="text-center py-6 border-b">
-                    <h2 
-                        className="text-2xl font-bold"
-                        style={{
-                            fontFamily: 'var(--serif-font)',
-                            color: template?.colors?.primary || '#003087',
-                        }}
+                {/* Left — sign-in form */}
+                <div className="flex flex-1 flex-col px-8 py-10 md:px-10 md:py-12">
+                    <div className="mb-8 flex flex-col items-center text-center">
+                        {template?.branding?.logo && (
+                            <img
+                                src={template.branding.logo}
+                                alt=""
+                                className="mb-3 h-10 w-auto object-contain"
+                            />
+                        )}
+                        <p
+                            className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500"
+                            style={{ fontFamily: template?.typography?.fontFamily }}
+                        >
+                            {template?.branding?.institutionName || 'Portal'}
+                        </p>
+                    </div>
+
+                    <h2
+                        id="login-modal-title"
+                        className="mb-8 text-center text-3xl font-normal tracking-tight text-gray-900 md:text-4xl"
+                        style={{ fontFamily: headingFont }}
                     >
-                        {template?.branding?.institutionName || 'Portal'}
+                        {login.welcomeTitle}
                     </h2>
+
+                    <button
+                        type="button"
+                        className="mb-3 flex w-full items-center justify-between rounded-full border border-gray-300 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.14em] text-gray-800 transition-colors hover:bg-gray-50"
+                        onClick={handleSsoLogin}
+                    >
+                        <span>{login.ssoButtonLabel}</span>
+                        <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                    </button>
+
+                    <div className="my-6 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+                            {login.emailDivider}
+                        </span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <FloatingInput
+                            id="login-email"
+                            label={labels.idLabel}
+                            value={campusId}
+                            onChange={(e) => setCampusId(e.target.value)}
+                            autoComplete="username"
+                            accentColor={primary}
+                        />
+
+                        <FloatingInput
+                            id="login-password"
+                            label="Password"
+                            type={showPassword ? 'text' : 'password'}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            autoComplete="current-password"
+                            accentColor={primary}
+                            trailing={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((v) => !v)}
+                                    className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? (
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    )}
+                                </button>
+                            }
+                        />
+
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+                                style={{ color: primary }}
+                                onClick={(e) => e.preventDefault()}
+                            >
+                                Forgot password?
+                            </button>
+                        </div>
+
+                        {error && (
+                            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                                {error}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="w-full rounded-full py-3.5 text-xs font-bold uppercase tracking-[0.18em] text-white transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: primary }}
+                        >
+                            {login.signInButton}
+                        </button>
+                    </form>
+
+                    <p className="mt-6 text-center text-xs leading-relaxed text-gray-500">
+                        {labels.disclaimer}
+                    </p>
                 </div>
 
-                {/* Two Column Layout */}
-                <div className="flex flex-col md:flex-row">
-                    {/* Left Panel - Login Form */}
-                    <div className="flex-1 p-8 border-r border-gray-200">
-                        <div className="border-2 rounded-lg p-6" style={{ borderColor: template?.colors?.primary || '#003087' }}>
-                            {/* ID Field (CampusID or Case ID by schema) */}
-                            <div className="mb-6">
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="text-sm font-medium text-gray-700">{getSchemaLabels(template).idLabel}</label>
-                                    <a href="#" className="text-sm text-blue-600 hover:underline">Forgot?</a>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={campusId}
-                                        onChange={(e) => setCampusId(e.target.value)}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder={getSchemaLabels(template).idPlaceholder}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                                        title="More options"
-                                    >
-                                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Password Field */}
-                            <div className="mb-6">
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="text-sm font-medium text-gray-700">Password</label>
-                                    <a href="#" className="text-sm text-blue-600 hover:underline">Forgot?</a>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Enter your password"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                                        title="More options"
-                                    >
-                                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Error Message */}
-                            {error && (
-                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-                                    {error}
-                                </div>
-                            )}
-
-                            {/* Login Button */}
-                            <button
-                                type="submit"
-                                onClick={handleSubmit}
-                                className="w-full py-3 rounded-lg font-semibold text-white hover:opacity-90 transition-opacity shadow-md"
-                                style={{ backgroundColor: template?.colors?.primary || '#003087' }}
-                            >
-                                Login
-                            </button>
-
-                            {/* Disclaimer (schema-based) */}
-                            <p className="text-xs text-gray-500 mt-4 text-center">
-                                {getSchemaLabels(template).disclaimer}
-                            </p>
-                        </div>
+                {/* Right — template-branded highlights */}
+                <div
+                    className="flex flex-1 flex-col justify-center px-8 py-10 md:px-10 md:py-12"
+                    style={{ backgroundColor: panelTint }}
+                >
+                    <div
+                        className="mb-6 rounded-2xl px-5 py-4 text-white"
+                        style={{ backgroundColor: secondary }}
+                    >
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-90">
+                            {template?.branding?.institutionName || 'Portal'}
+                        </p>
+                        <h3
+                            className="mt-2 text-2xl font-normal leading-snug tracking-tight md:text-3xl"
+                            style={{ fontFamily: headingFont }}
+                        >
+                            {login.headline}
+                        </h3>
                     </div>
 
-                    {/* Right Panel - Security Information */}
-                    <div className="flex-1 p-8">
-                        {/* Secure Your Session */}
-                        <div className="mb-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                <h3 className="text-lg font-bold text-gray-900">Secure Your Session</h3>
-                            </div>
-                            <p className="text-sm text-gray-700 mb-4">
-                                {getSchemaLabels(template).secureSessionNote}
-                                {' '}
-                                <span className="bg-yellow-200 px-1 rounded">official address</span>.
-                            </p>
-                            <p className="text-sm text-gray-700">
-                                To protect your privacy, close your web browser when you are finished with your session.
-                            </p>
-                        </div>
+                    <ul className="space-y-4">
+                        {login.features.map((feature) => (
+                            <li key={feature} className="flex items-start gap-3 text-sm leading-relaxed text-gray-800">
+                                <CheckIcon color={secondary} />
+                                <span>{feature}</span>
+                            </li>
+                        ))}
+                    </ul>
 
-                        {/* Duo Authentication Box */}
-                        <div className="bg-green-600 rounded-lg p-4 text-white">
-                            <h4 className="font-semibold mb-2">{getSchemaLabels(template).ssoTitle}</h4>
-                            <p className="text-sm">
-                                Duo multifactor authentication is required to log into applications that use this single sign-on (SSO) screen.
-                            </p>
-                        </div>
-                    </div>
+                    <p className="mt-8 text-xs leading-relaxed text-gray-600">
+                        {labels.secureSessionNote}
+                    </p>
                 </div>
             </div>
         </div>

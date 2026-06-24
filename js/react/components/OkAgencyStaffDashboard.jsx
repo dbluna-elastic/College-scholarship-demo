@@ -10,7 +10,16 @@ import { getSchemaLabels } from '../../config/schemaConfig.js';
 import ChatWidget from './ChatWidget.jsx';
 import OkAgencyPortalHeader from './okagency/OkAgencyPortalHeader.jsx';
 import OkAgencyFooter from './okagency/OkAgencyFooter.jsx';
+import OkAgencyGenerateEmailButton from './okagency/OkAgencyGenerateEmailButton.jsx';
 import { OKAGENCY_CARD_CLASS, OKAGENCY_PAGE_BG_CLASS } from './okagency/okagencyUi.js';
+
+/** Demo recipient emails aligned with OkAgencyBusinessScorecard DEMO_SCORECARDS */
+const BUSINESS_RECIPIENT_EMAILS = {
+    'prairie-alloy-fabrication-llc': 'controller@prairiealloy.example',
+    'red-river-manufacturing-llc': 'grants@redrivermfg.example',
+    'osage-food-solutions-inc': 'finance@osagefoods.example',
+    'tulsa-grid-services-cooperative': 'compliance@tulsagrid.example',
+};
 
 const HIGH_PRIORITY_ROWS = [
     {
@@ -254,13 +263,17 @@ function OkAgencyStaffDashboard({ onLogout, campusId, onBusinessClick }) {
                                             <td className="px-6 py-4 text-gray-700">{row.alert}</td>
                                             <td className="px-6 py-4 text-gray-600">{row.financial}</td>
                                             <td className="px-6 py-4">
-                                                <div className="flex flex-wrap gap-1">
-                                                    <button
-                                                        type="button"
-                                                        className="px-3 py-1 text-xs font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100"
-                                                    >
-                                                        {sd.actionEmail || 'Email'}
-                                                    </button>
+                                                <div className="flex flex-wrap gap-1 items-start">
+                                                    <OkAgencyGenerateEmailButton
+                                                        businessId={row.businessId}
+                                                        businessName={row.business}
+                                                        awardId={row.awardId}
+                                                        complianceAlert={row.alert}
+                                                        financialStatus={row.financial}
+                                                        recipientEmail={BUSINESS_RECIPIENT_EMAILS[row.businessId] || ''}
+                                                        label={sd.actionEmail || 'Email'}
+                                                        compact
+                                                    />
                                                     <button
                                                         type="button"
                                                         className="px-3 py-1 text-xs font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100"

@@ -17,9 +17,9 @@ export default defineConfig({
                     });
                 }
             },
-            // Proxy for Elasticsearch direct searches (ES endpoint)
+            // Proxy for Elasticsearch direct searches (ES endpoint) — Gawdzilla (single-cluster default)
             '/api/elastic/es': {
-                target: 'https://apex-dec2025-group4-b01431.es.us-central1.gcp.elastic.cloud:443',
+                target: 'https://gawdzilla-0d3e9e.es.us-east-2.aws.elastic-cloud.com:443',
                 changeOrigin: true,
                 rewrite: (path) => {
                     // Remove /api/elastic/es prefix
@@ -58,6 +58,49 @@ export default defineConfig({
                     });
                 },
             },
+            '/api/elastic/booster-donor-data/tools/_execute': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/tools/_execute',
+                configure: (proxy) => {
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder tool execute (booster-donor-data) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/ok-grants-data/tools/_execute': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/tools/_execute',
+                configure: (proxy) => {
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder tool execute (ok-grants-data) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/ok-oja-data/tools/_execute': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/tools/_execute',
+                configure: (proxy) => {
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder tool execute (ok-oja-data) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/agent/ok-oja-data/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (ok-oja-data) proxy error:', err);
+                    });
+                },
+            },
             '/api/elastic/agent/booster-donor-data/chat/stream': {
                 target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
                 changeOrigin: true,
@@ -91,6 +134,16 @@ export default defineConfig({
                     });
                 }
             },
+            '/api/elastic/agent/ok-oja-data/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (ok-oja-data) proxy error:', err);
+                    });
+                }
+            },
             '/api/elastic/agent/booster-donor-data/chat': {
                 target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
                 changeOrigin: true,
@@ -101,9 +154,9 @@ export default defineConfig({
                     });
                 }
             },
-            // Proxy for Kibana/Agent Builder API (default: apex)
+            // Proxy for Kibana/Agent Builder API (default: Gawdzilla)
             '/api/elastic': {
-                target: 'https://apex-dec2025-group4-b01431.kb.us-central1.gcp.elastic.cloud',
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
                 changeOrigin: true,
                 rewrite: (path) => {
                     const streamMatch = path.match(/^\/api\/elastic\/agent\/([^\/]+)\/chat\/stream$/);

@@ -127,6 +127,37 @@ export function buildDonorObservations(donor) {
 }
 
 /**
+ * Add engagement-drop observations when timeline metadata is present.
+ * @param {Array<Object>} observations
+ * @param {Array<Object>} timelineEvents
+ * @param {string} [inflectionDate]
+ * @returns {Array<Object>}
+ */
+export function appendEngagementDropObservations(observations, timelineEvents, inflectionDate = '2025-09-01') {
+    if (!timelineEvents?.length || !inflectionDate) return observations;
+
+    const inflectionDay = inflectionDate.slice(0, 10);
+    const postInflection = timelineEvents.filter((event) => {
+        const day = String(event.event_date || '').slice(0, 10);
+        return day >= inflectionDay && ['email_open', 'event_attendance', 'portal_login'].includes(event.event_type);
+    });
+    const activeSignals = postInflection.filter((event) => Number(event.signal_value) > 0).length;
+
+    if (postInflection.length > 20 && activeSignals === 0) {
+        return [
+            {
+                level: 'critical',
+                title: 'Engagement dropped sharply',
+                detail: `All signals went quiet after ${inflectionDay} — review the engagement timeline and schedule outreach.`,
+            },
+            ...observations,
+        ];
+    }
+
+    return observations;
+}
+
+/**
  * @param {number|null|undefined} value
  * @returns {string}
  */

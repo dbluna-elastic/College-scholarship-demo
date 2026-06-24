@@ -12,10 +12,10 @@ import { maskValue } from './maskValue.js';
 import { tracedFetch } from './tracingHelpers.js';
 
 /** Agent Builder agents served from gawdzilla (OK_KIBANA_URL / OK_KIBANA_API_KEY), not ELASTIC_KB_URL. */
-const GAWDZILLA_AGENT_BUILDER_IDS = new Set(['ok-fraud', 'ok-grants-data', 'booster-donor-data']);
+const GAWDZILLA_AGENT_BUILDER_IDS = new Set(['ok-fraud', 'ok-grants-data', 'booster-donor-data', 'ok-oja-data']);
 
 /** ESQL / _search on gawdzilla Elasticsearch (OK_ELASTIC_ES_URL proxy path). */
-const GAWDZILLA_ES_AGENT_IDS = new Set(['ok-fraud', 'booster-donor-data']);
+const GAWDZILLA_ES_AGENT_IDS = new Set(['ok-fraud', 'booster-donor-data', 'ok-oja-data']);
 
 function usesGawdzillaAgentBuilder(agentId) {
     return Boolean(agentId && GAWDZILLA_AGENT_BUILDER_IDS.has(String(agentId)));
@@ -26,6 +26,24 @@ function usesGawdzillaEs(agentId) {
 }
 
 export { getApiKeyForAgent, usesGawdzillaAgentBuilder, usesGawdzillaEs };
+
+/**
+ * Proxy path for Agent Builder tool execute on gawdzilla.
+ * @param {string} agentId
+ * @returns {string}
+ */
+function getAgentBuilderToolExecutePath(agentId) {
+    const paths = {
+        'ok-oja-data': '/api/elastic/ok-oja-data/tools/_execute',
+        'booster-donor-data': '/api/elastic/booster-donor-data/tools/_execute',
+        'ok-grants-data': '/api/elastic/ok-grants-data/tools/_execute',
+    };
+    if (paths[agentId]) return paths[agentId];
+    if (usesGawdzillaAgentBuilder(agentId)) {
+        return '/api/elastic/ok-fraud/tools/_execute';
+    }
+    return '/api/agent_builder/tools/_execute';
+}
 
 /** Best-effort summary from Kibana / Agent Builder error JSON or raw text (for UI and logs). */
 function summarizeAgentBuilderErrorBody(errorText) {
@@ -47,17 +65,26 @@ function summarizeAgentBuilderErrorBody(errorText) {
     return raw.length > 600 ? `${raw.slice(0, 600)}…` : raw;
 }
 
+function isGawdzillaCluster() {
+    const urls = [
+        getEnvVar('ELASTIC_ES_URL', ''),
+        getEnvVar('OK_ELASTIC_ES_URL', ''),
+        getEnvVar('ELASTIC_KB_URL', ''),
+        getEnvVar('OK_KIBANA_URL', ''),
+    ].join(' ').toLowerCase();
+    return urls.includes('gawdzilla');
+}
+
 /**
  * Gets the Elastic API key from environment
  * @returns {string} API key or empty string
  */
 function getApiKey() {
-    const apiKey = getEnvVar('ELASTIC_API_KEY', '');
-    // Debug: Log if API key is missing (but don't log the actual key)
-    if (!apiKey && typeof window !== 'undefined') {
-        console.warn('ELASTIC_API_KEY not found. window.env:', window.env ? Object.keys(window.env) : 'not defined');
-    }
-    return apiKey;
+    const okKey = getEnvVar('OK_KIBANA_API_KEY', '');
+    const elasticKey = getEnvVar('ELASTIC_API_KEY', '');
+    // Gawdzilla: prefer OK_KIBANA_API_KEY so a stale Apex ELASTIC_API_KEY does not break ES queries
+    if (isGawdzillaCluster() && okKey) return okKey;
+    return elasticKey || okKey;
 }
 
 /**
@@ -456,4 +483,46 @@ export async function fetchElasticsearchUpdate(index, documentId, updateData) {
         console.error('Elasticsearch update error:', error.message);
         throw error;
     }
+}
+
+/**
+ * Execute an Agent Builder tool directly (e.g. workflow tool for email draft).
+ * Gawdzilla agents use /api/elastic/ok-oja-data/tools/_execute proxy path.
+ *
+ * @param {string} agentId - Agent ID for API key / proxy routing (e.g. ok-oja-data)
+ * @param {string} toolId - Tool ID registered in Agent Builder
+ * @param {Object} toolParams - Parameters for the tool
+ * @returns {Promise<Object>} Parsed tool execute response
+ */
+export async function executeAgentBuilderTool(agentId, toolId, toolParams = {}) {
+    const apiKey = getApiKeyForAgent(agentId);
+    if (!apiKey) {
+        throw new Error(
+            usesGawdzillaAgentBuilder(agentId)
+                ? 'OK_KIBANA_API_KEY is required for Agent Builder tools on gawdzilla'
+                : 'ELASTIC_API_KEY is required for Agent Builder tools'
+        );
+    }
+
+    const path = getAgentBuilderToolExecutePath(agentId);
+
+    const response = await tracedFetch(path, {
+        method: 'POST',
+        headers: createAuthHeaders(true, agentId),
+        body: JSON.stringify({
+            tool_id: toolId,
+            tool_params: toolParams,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        const summary = summarizeAgentBuilderErrorBody(errorText);
+        const err = new Error(summary || `Tool execute failed: ${response.status}`);
+        err.status = response.status;
+        err.details = errorText;
+        throw err;
+    }
+
+    return response.json();
 }

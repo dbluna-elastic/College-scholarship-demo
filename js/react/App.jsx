@@ -17,8 +17,13 @@ import AnalyticsDashboard from './components/AnalyticsDashboard.jsx';
 import LoginModal from './components/LoginModal.jsx';
 import StudentDashboard from './components/StudentDashboard.jsx';
 import CounselorDashboard from './components/CounselorDashboard.jsx';
-import MentalHealthFraudDashboard from './components/MentalHealthFraudDashboard.jsx';
+import MentalHealthStaffPortal from './components/MentalHealthStaffPortal.jsx';
 import FraudRecipientDetail from './components/FraudRecipientDetail.jsx';
+import ClientOutcomeDetail from './components/ClientOutcomeDetail.jsx';
+import OkMentalHealthPublicSections from './components/OkMentalHealthPublicSections.jsx';
+import OkOjaPublicSections from './components/OkOjaPublicSections.jsx';
+import OjaStaffPortal from './components/OjaStaffPortal.jsx';
+import OjaYouthScorecard from './components/OjaYouthScorecard.jsx';
 import OkCommerceCompanyDashboard from './components/OkCommerceCompanyDashboard.jsx';
 import OkAgencyStaffDashboard from './components/OkAgencyStaffDashboard.jsx';
 import OkAgencyBusinessScorecard from './components/OkAgencyBusinessScorecard.jsx';
@@ -37,8 +42,10 @@ function App() {
     const [campusId, setCampusId] = useState(null); // Store campus ID from login
     const [headerScrolled, setHeaderScrolled] = useState(false);
     const [fraudRecipientId, setFraudRecipientId] = useState(null);
+    const [clinicalClientId, setClinicalClientId] = useState(null);
     const [okagencyBusinessId, setOkagencyBusinessId] = useState(null);
     const [boosterDonorId, setBoosterDonorId] = useState(null);
+    const [ojaYouthId, setOjaYouthId] = useState(null);
 
     useEffect(() => {
         console.log('⚛️ React App mounted with template:', template?.name);
@@ -46,7 +53,7 @@ function App() {
 
     // Agency hero overlay: header becomes solid on scroll (okmentalhealth only; okagency uses solid grants search header)
     useEffect(() => {
-        if (!['okmentalhealth', 'dot'].includes(template?.id)) return;
+        if (!['okmentalhealth', 'dot', 'okoja'].includes(template?.id)) return;
         const onScroll = () => setHeaderScrolled(window.scrollY > 60);
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
@@ -136,6 +143,8 @@ function App() {
         setCampusId(null);
         setOkagencyBusinessId(null);
         setBoosterDonorId(null);
+        setFraudRecipientId(null);
+        setClinicalClientId(null);
         setActiveSection('home');
     };
 
@@ -196,6 +205,19 @@ function App() {
         );
     }
 
+    if (activeSection === 'client-outcome-detail' && template?.id === 'okmentalhealth') {
+        return (
+            <ClientOutcomeDetail
+                clientId={clinicalClientId}
+                onBack={() => {
+                    setClinicalClientId(null);
+                    setActiveSection('counselor-dashboard');
+                }}
+                onLogout={handleLogout}
+            />
+        );
+    }
+
     if (activeSection === 'okagency-business-scorecard' && template?.id === 'okagency') {
         return (
             <OkAgencyBusinessScorecard
@@ -203,6 +225,19 @@ function App() {
                 campusId={campusId}
                 onBack={() => {
                     setOkagencyBusinessId(null);
+                    setActiveSection('counselor-dashboard');
+                }}
+                onLogout={handleLogout}
+            />
+        );
+    }
+
+    if (activeSection === 'oja-youth-scorecard' && template?.id === 'okoja') {
+        return (
+            <OjaYouthScorecard
+                youthId={ojaYouthId}
+                onBack={() => {
+                    setOjaYouthId(null);
                     setActiveSection('counselor-dashboard');
                 }}
                 onLogout={handleLogout}
@@ -233,14 +268,30 @@ function App() {
                 />
             );
         }
+        if (template?.id === 'okoja') {
+            return (
+                <OjaStaffPortal
+                    onLogout={handleLogout}
+                    onYouthClick={(id) => {
+                        setOjaYouthId(id);
+                        setActiveSection('oja-youth-scorecard');
+                    }}
+                />
+            );
+        }
         if (template?.id === 'okmentalhealth') {
             return (
-                <MentalHealthFraudDashboard
+                <MentalHealthStaffPortal
                     onLogout={handleLogout}
                     onRecipientClick={(id) => {
                         setFraudRecipientId(id);
                         setActiveSection('fraud-recipient-detail');
                     }}
+                    onClientClick={(id) => {
+                        setClinicalClientId(id);
+                        setActiveSection('client-outcome-detail');
+                    }}
+                    onOpenGrantsSearch={() => setActiveSection('grants-search')}
                 />
             );
         }
@@ -332,11 +383,29 @@ function App() {
     }
 
     // Oklahoma agency–style layout (okagency, okmentalhealth): overlay header, hero, blue bar, promo bar, white main
-    const isAgencyOverlayLayout = ['okagency', 'okmentalhealth', 'dot'].includes(template?.id);
+    const isAgencyOverlayLayout = ['okagency', 'okmentalhealth', 'dot', 'okoja'].includes(template?.id);
     const primaryColor = template?.colors?.primary || '#5D5FEF';
     const secondaryColor = template?.colors?.secondary || '#2E7D32';
     const accentColor = template?.colors?.accent || '#0ea5e9';
     const charcoalColor = template?.colors?.charcoal || '#1e293b';
+
+    if (isAgencyOverlayLayout && template?.id === 'okmentalhealth' && activeSection === 'grants-search') {
+        return (
+            <div className="w-full min-h-screen bg-slate-50" style={{ fontFamily: template?.typography?.fontFamily }}>
+                <a
+                    href="#grants-search-main"
+                    className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:block focus:h-auto focus:w-auto focus:overflow-visible focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:shadow-lg"
+                >
+                    Skip to grant search
+                </a>
+                <OkAgencyPortalHeader position="fixed" onLoginClick={() => setShowLoginModal(true)} />
+                <StateAgencyGrantsSearch />
+                <OkAgencyFooter />
+                <ChatWidget floating={true} />
+                <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
+            </div>
+        );
+    }
 
     if (isAgencyOverlayLayout && template?.id === 'okagency') {
         return (
@@ -551,6 +620,17 @@ function App() {
                     </a>
                 )}
 
+                {template?.id === 'okoja' && (
+                    <OkOjaPublicSections onStaffLoginClick={() => setShowLoginModal(true)} />
+                )}
+
+                {template?.id === 'okmentalhealth' && (
+                    <OkMentalHealthPublicSections
+                        onStaffLoginClick={() => setShowLoginModal(true)}
+                        onOpenGrantsSearch={() => setActiveSection('grants-search')}
+                    />
+                )}
+
                 {/* DOT: safety / mission spotlight */}
                 {template?.id === 'dot' && spotlight?.title && (
                     <section className="border-b border-slate-800 bg-slate-900 py-12 text-white md:py-16">
@@ -579,7 +659,7 @@ function App() {
                 )}
 
                 {/* Main content: white, H2 + tagline + news */}
-                <main id={template?.id === 'dot' ? 'dot-main-content' : undefined} className="bg-white py-16">
+                <main id={template?.id === 'dot' ? 'dot-main-content' : (template?.id === 'okmentalhealth' || template?.id === 'okoja') ? 'programs' : undefined} className="bg-white py-16">
                     <div className="max-w-7xl mx-auto px-4">
                         <h2
                             className="text-3xl md:text-4xl font-bold text-center mb-3"
@@ -612,6 +692,18 @@ function App() {
                                 </article>
                             ))}
                         </div>
+                        {template?.id === 'okmentalhealth' && (
+                            <div className="mt-12 text-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveSection('grants-search')}
+                                    className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    Search behavioral health grants
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </main>
 
@@ -793,6 +885,8 @@ function App() {
                     </p>
                     <div className="flex gap-4 justify-center flex-wrap">
                         <button
+                            type="button"
+                            onClick={() => setShowLoginModal(true)}
                             className="px-8 py-3 rounded-full font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg"
                             style={{ backgroundColor: template.colors?.primary || '#5D5FEF' }}
                         >

@@ -16,6 +16,7 @@ const SHORT_LABELS = {
     okmentalhealth: 'MH',
     dot: 'DOT',
     texascollege: 'TC',
+    okoja: 'OJA',
 };
 
 const RADIAL_RADIUS = 148;

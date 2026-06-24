@@ -12,8 +12,8 @@ const SCHOOL_LABELS = {
     schema: 'school',
     primaryRole: 'student',
     staffRole: 'counselor',
-    idLabel: 'CampusID',
-    idPlaceholder: 'Enter your CampusID',
+    idLabel: 'Email or username',
+    idPlaceholder: 'Enter email or username',
     dashboardPrimary: 'Student Dashboard',
     dashboardStaff: 'Counselor Dashboard',
     profileTitle: 'Student Information',
@@ -34,8 +34,8 @@ const AGENCY_LABELS = {
     schema: 'agency',
     primaryRole: 'citizen',
     staffRole: 'caseworker',
-    idLabel: 'Case ID',
-    idPlaceholder: 'Enter your Case ID or User ID',
+    idLabel: 'Email or username',
+    idPlaceholder: 'Enter email or username',
     dashboardPrimary: 'Citizen Dashboard',
     dashboardStaff: 'Case Worker Dashboard',
     profileTitle: 'Case Information',
@@ -69,6 +69,55 @@ export function getSchemaLabels(template) {
  */
 export function isAgencySchema(template) {
     return template?.schema === 'agency';
+}
+
+const SCHOOL_LOGIN_DEFAULTS = {
+    welcomeTitle: 'Welcome back',
+    signInButton: 'Sign in',
+    emailDivider: 'Or sign in with email',
+    ssoButtonLabel: 'Continue with campus SSO',
+    features: [
+        'Access scholarship search and financial aid tools',
+        'Track application status and deadlines',
+        'Connect with counselors and academic advisors',
+        'Explore programs and eligibility requirements',
+    ],
+};
+
+const AGENCY_LOGIN_DEFAULTS = {
+    welcomeTitle: 'Welcome back',
+    signInButton: 'Sign in',
+    emailDivider: 'Or sign in with email',
+    ssoButtonLabel: 'SSO through employer',
+    features: [
+        'Search state grant opportunities and programs',
+        'Track deadlines and application status',
+        'Access compliance and reporting resources',
+        'Connect with program staff and authorized users',
+    ],
+};
+
+/**
+ * Login panel copy and feature list for the sign-in modal.
+ * Template `login` overrides merge on top of schema defaults.
+ * @param {Object} template
+ * @returns {Object}
+ */
+export function getLoginConfig(template) {
+    const labels = getSchemaLabels(template);
+    const base = labels.schema === 'agency' ? AGENCY_LOGIN_DEFAULTS : SCHOOL_LOGIN_DEFAULTS;
+    const overrides = template?.login || {};
+    const headline =
+        overrides.headline
+        || template?.content?.heroTitle
+        || template?.branding?.tagline
+        || 'Your portal for programs and services';
+    return {
+        ...base,
+        ...overrides,
+        headline,
+        features: overrides.features || base.features,
+    };
 }
 
 export { SCHOOL_LABELS, AGENCY_LABELS };

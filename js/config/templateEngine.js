@@ -18,6 +18,7 @@ import { okagencyTemplate } from './templates/okagency.js';
 import { okmentalhealthTemplate } from './templates/okmentalhealth.js';
 import { dotTemplate } from './templates/dot.js';
 import { texascollegeTemplate } from './templates/texascollege.js';
+import { okojaTemplate } from './templates/okoja.js';
 import { getEnvVar } from '../modules/utils/getEnvVar.js';
 
 // Template registry
@@ -30,6 +31,7 @@ const templates = {
     okmentalhealth: okmentalhealthTemplate,
     dot: dotTemplate,
     texascollege: texascollegeTemplate,
+    okoja: okojaTemplate,
 };
 
 /**

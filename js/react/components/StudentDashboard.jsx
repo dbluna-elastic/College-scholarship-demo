@@ -8,8 +8,20 @@ import { useContext, useState, useEffect } from 'react';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import ChatWidget from './ChatWidget.jsx';
 import StudentEditModal from './StudentEditModal.jsx';
+import ScholarshipApplicationModal from './ScholarshipApplicationModal.jsx';
 import { getSchemaLabels } from '../../config/schemaConfig.js';
-import { getStudentData, searchScholarshipsWithTemplate, updateStudentData } from '../../modules/utils/esqlQueries.js';
+import {
+    resolveStudentForLogin,
+    getStudentData,
+    searchScholarshipsWithTemplate,
+    updateStudentData,
+} from '../../modules/utils/esqlQueries.js';
+import {
+    formatStudentDisplayName,
+    buildStudentProfileForForms,
+    buildNetPriceEstimate,
+    scholarshipCardId,
+} from '../../modules/utils/studentDashboardUtils.js';
 
 function StudentDashboard({ onLogout, campusId }) {
     const template = useContext(TemplateContext);
@@ -29,30 +41,22 @@ function StudentDashboard({ onLogout, campusId }) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [studentIndex, setStudentIndex] = useState(null);
     const [studentDocumentId, setStudentDocumentId] = useState(null);
+    const [resolvedStudentKey, setResolvedStudentKey] = useState(null);
+    const [formProfile, setFormProfile] = useState(null);
 
-    // Mock data for Net Price Estimate
-    const netPriceData = {
-        estimatedNetPrice: 23128,
-        directCosts: {
-            total: 24500,
-            tuition: 16608,
-            housing: 7892
-        },
-        indirectCosts: {
-            total: 2360,
-            books: 588,
-            transportation: 732,
-            personal: 1040
-        },
-        costOfAttendance: 26860,
-        needBasedAid: {
-            total: 3732,
-            pellGrant: 933
-        },
-        grantsAndScholarships: 3732
+    const [submittedScholarshipIds, setSubmittedScholarshipIds] = useState(() => new Set());
+    const [applicationScholarship, setApplicationScholarship] = useState(null);
+    const [chatOpenSignal, setChatOpenSignal] = useState(0);
+    const [successToast, setSuccessToast] = useState(null);
+
+    const defaultNetPrice = buildNetPriceEstimate(null);
+
+    const netPriceData = studentProfile ? buildNetPriceEstimate(studentProfile) : defaultNetPrice;
+
+    const showToast = (message) => {
+        setSuccessToast(message);
+        setTimeout(() => setSuccessToast(null), 3000);
     };
-
-    // Calculate displayed values based on time period
     const getDisplayValue = (annualValue) => {
         if (timePeriod === 'total-degree') {
             return annualValue * 4; // Assuming 4-year degree
@@ -81,10 +85,12 @@ function StudentDashboard({ onLogout, campusId }) {
                 setIsLoadingStudent(true);
                 setError(null);
 
-                // Fetch student profile
-                const studentResult = await getStudentData(campusId);
+                // Resolve login id → Gawdzilla student (random profile for quick login)
+                const studentResult = await resolveStudentForLogin(campusId);
                 if (studentResult.found && studentResult.student) {
                     setStudentProfile(studentResult.student);
+                    setResolvedStudentKey(studentResult.student.full_name || campusId);
+                    setFormProfile(buildStudentProfileForForms(studentResult.student, campusId));
                     // Store index and document ID for updates
                     setStudentIndex(studentResult.index);
                     setStudentDocumentId(studentResult.documentId);
@@ -115,10 +121,10 @@ function StudentDashboard({ onLogout, campusId }) {
                     // Student not found - this is not an error, just no data available yet
                     console.log('Student data not found in Elasticsearch. Dashboard will show with default data.');
                     setStudentProfile(null);
+                    setResolvedStudentKey(null);
+                    setFormProfile(buildStudentProfileForForms(null, campusId));
                     setStudentIndex(null);
                     setStudentDocumentId(null);
-                    
-                    // Still try to show some scholarships with default search
                     setIsLoadingScholarships(true);
                     try {
                         const scholarshipResult = await searchScholarshipsWithTemplate(
@@ -150,9 +156,7 @@ function StudentDashboard({ onLogout, campusId }) {
     // Function to refresh matched scholarships based on student profile
     const refreshMatchedScholarships = async (profile = null) => {
         const profileToUse = profile || studentProfile;
-        if (!profileToUse || !campusId) {
-            return;
-        }
+        if (!profileToUse) return;
 
         try {
             setIsLoadingScholarships(true);
@@ -185,10 +189,8 @@ function StudentDashboard({ onLogout, campusId }) {
         );
     }
 
-    const studentName = studentProfile?.name ||
-                       studentProfile?.first_name ||
-                       campusId ||
-                       schemaLabels.welcomeNameFallback;
+    const studentName = formatStudentDisplayName(studentProfile, campusId || schemaLabels.welcomeNameFallback);
+    const primaryColor = template.colors?.primary || '#5D5FEF';
 
     return (
         <div className="w-full min-h-screen bg-white">
@@ -308,19 +310,9 @@ function StudentDashboard({ onLogout, campusId }) {
 
                     {/* Student Not Found Message */}
                     {!error && !isLoadingStudent && !studentProfile && (
-                        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
-                            <div className="flex items-start gap-3">
-                                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <div>
-                                    <strong>{schemaLabels.profileNotFound}</strong>
-                                    <p className="text-sm mt-1">
-                                        Your student profile is not yet available in the system. The dashboard below shows estimated costs and general scholarship opportunities. 
-                                        Once your profile is added, personalized scholarship matches will appear here.
-                                    </p>
-                                </div>
-                            </div>
+                        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-900">
+                            <strong>Loading demo profile…</strong>
+                            <p className="text-sm mt-1">If this persists, check your Gawdzilla API key and students index.</p>
                         </div>
                     )}
 
@@ -457,8 +449,10 @@ function StudentDashboard({ onLogout, campusId }) {
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-2xl font-bold text-gray-900">Matched Scholarships</h2>
                                 <button
+                                    type="button"
+                                    onClick={() => setChatOpenSignal((n) => n + 1)}
                                     className="px-4 py-2 rounded-full text-sm font-medium text-white hover:opacity-90 transition-opacity"
-                                    style={{ backgroundColor: template.colors?.primary || '#5D5FEF' }}
+                                    style={{ backgroundColor: primaryColor }}
                                 >
                                     <span className="flex items-center gap-2">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -490,9 +484,12 @@ function StudentDashboard({ onLogout, campusId }) {
                                 </div>
                             ) : (
                                 <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                                    {matchedScholarships.map((scholarship, index) => (
+                                    {matchedScholarships.map((scholarship, index) => {
+                                        const cardId = scholarshipCardId(scholarship, index);
+                                        const isSubmitted = submittedScholarshipIds.has(cardId);
+                                        return (
                                         <div
-                                            key={scholarship.id || index}
+                                            key={cardId}
                                             className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                                         >
                                             <div className="flex items-start justify-between mb-3">
@@ -531,19 +528,39 @@ function StudentDashboard({ onLogout, campusId }) {
 
                                             <div className="flex gap-2">
                                                 <button
-                                                    className="flex-1 px-4 py-2 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                                                    style={{ backgroundColor: template.colors?.primary || '#5D5FEF' }}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (isSubmitted) {
+                                                            showToast('Application submitted — status review in progress.');
+                                                            return;
+                                                        }
+                                                        setApplicationScholarship({
+                                                            id: cardId,
+                                                            name: scholarship.name,
+                                                        });
+                                                    }}
+                                                    className={`flex-1 px-4 py-2 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity ${isSubmitted ? 'bg-green-600' : ''}`}
+                                                    style={isSubmitted ? undefined : { backgroundColor: primaryColor }}
                                                 >
-                                                    Apply Now
+                                                    {isSubmitted ? 'Check Status' : 'Apply Now'}
                                                 </button>
                                                 <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (scholarship.url) {
+                                                            window.open(scholarship.url, '_blank', 'noopener,noreferrer');
+                                                        } else {
+                                                            showToast('No external scholarship URL available for this award.');
+                                                        }
+                                                    }}
                                                     className="px-4 py-2 rounded-full text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
                                                 >
                                                     View Scholarship
                                                 </button>
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -616,33 +633,56 @@ function StudentDashboard({ onLogout, campusId }) {
                 </div>
             </footer>
 
-            {/* Chat Widget - Floating */}
-            <ChatWidget floating={true} />
+            {/* Chat Widget - Floating (studentcounselor on Gawdzilla) */}
+            <ChatWidget floating openSignal={chatOpenSignal} agentId="studentcounselor" />
+
+            {successToast && (
+                <div className="fixed top-4 right-4 z-[70] bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="font-semibold">{successToast}</span>
+                </div>
+            )}
+
+            <ScholarshipApplicationModal
+                isOpen={Boolean(applicationScholarship)}
+                onClose={() => setApplicationScholarship(null)}
+                scholarshipName={applicationScholarship?.name || ''}
+                scholarshipId={applicationScholarship?.id || ''}
+                studentProfile={formProfile}
+                primaryColor={primaryColor}
+                onSubmitted={(id) => {
+                    setSubmittedScholarshipIds((prev) => new Set(prev).add(id));
+                    showToast('Application submitted successfully!');
+                }}
+            />
 
             {/* Student Edit Modal */}
             <StudentEditModal
                 isOpen={showEditModal}
                 onClose={() => setShowEditModal(false)}
                 studentProfile={studentProfile}
-                studentId={campusId}
+                studentId={resolvedStudentKey || campusId}
                 onSave={async (studentId, updateData) => {
                     try {
+                        const lookupName = resolvedStudentKey || studentId;
                         await updateStudentData(
-                            studentId,
+                            lookupName,
                             updateData,
                             studentIndex || 'students',
                             studentDocumentId
                         );
                         
-                        // Refresh student data after successful save
-                        const studentResult = await getStudentData(campusId);
+                        const studentResult = await getStudentData(lookupName);
                         if (studentResult.found && studentResult.student) {
                             const updatedProfile = studentResult.student;
                             setStudentProfile(updatedProfile);
+                            setResolvedStudentKey(updatedProfile.full_name || lookupName);
+                            setFormProfile(buildStudentProfileForForms(updatedProfile, campusId));
                             setStudentIndex(studentResult.index);
                             setStudentDocumentId(studentResult.documentId);
                             
-                            // Refresh matched scholarships with updated profile
                             await refreshMatchedScholarships(updatedProfile);
                         }
                     } catch (error) {

@@ -12,7 +12,7 @@ import { useContext } from 'react';
 import { getEnvVar } from '../../modules/utils/getEnvVar.js';
 import DonorChatMessage from './DonorChatMessage.jsx';
 
-function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDonorClick }) {
+function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDonorClick, openSignal = 0 }) {
     const template = useContext(TemplateContext);
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -85,6 +85,13 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
             inputRef.current.focus();
         }
     }, [isOpen]);
+
+    // Parent can request chat open (e.g. "Chat with a Virtual Counselor" button)
+    useEffect(() => {
+        if (openSignal > 0) {
+            setIsOpen(true);
+        }
+    }, [openSignal]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

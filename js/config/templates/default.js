@@ -83,7 +83,7 @@ export const defaultTemplate = {
 
     // Elastic Configuration
     elastic: {
-        agentId: null,  // Will be set from environment or template-specific config
+        agentId: 'studentcounselor',
     },
     
     // Search Configuration

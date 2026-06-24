@@ -10,7 +10,18 @@ import { TemplateContext } from '../context/TemplateContext.jsx';
 import { getOkGrantDataCatalog } from '../../modules/utils/esqlQueries.js';
 import { OKAGENCY_CARD_CLASS } from './okagency/okagencyUi.js';
 
-const STORAGE_KEY = 'okagency_grants_saved_search';
+const STORAGE_KEY_PREFIX = 'state_agency_grants_saved_search';
+
+function storageKeyForTemplate(templateId) {
+    return `${STORAGE_KEY_PREFIX}_${templateId || 'default'}`;
+}
+
+function buildDefaultApplied(template) {
+    const base = defaultApplied();
+    const overrides = template?.content?.grantsSearch?.defaultApplied;
+    if (!overrides || typeof overrides !== 'object') return base;
+    return { ...base, ...overrides };
+}
 
 function parseSortDate(iso) {
     const t = new Date(iso);
@@ -70,8 +81,8 @@ export default function StateAgencyGrantsSearch() {
     const [grantsLoading, setGrantsLoading] = useState(() => Boolean(grantsDataIndex));
     const [grantsSource, setGrantsSource] = useState(() => (grantsDataIndex ? 'loading' : 'static'));
 
-    const [draft, setDraft] = useState(() => defaultApplied());
-    const [applied, setApplied] = useState(() => defaultApplied());
+    const [draft, setDraft] = useState(() => buildDefaultApplied(template));
+    const [applied, setApplied] = useState(() => buildDefaultApplied(template));
     const [toast, setToast] = useState('');
     /** Grant row id whose details row is open (single expand at a time) */
     const [expandedGrantId, setExpandedGrantId] = useState(null);
@@ -139,45 +150,45 @@ export default function StateAgencyGrantsSearch() {
     }, [draft]);
 
     const resetFilters = useCallback(() => {
-        const d = defaultApplied();
+        const d = buildDefaultApplied(template);
         setDraft(d);
         setApplied(d);
         setExpandedGrantId(null);
-    }, []);
+    }, [template]);
 
     const saveSearch = useCallback(() => {
         try {
             const payload = { ...applied };
             delete payload.page;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+            localStorage.setItem(storageKeyForTemplate(template?.id), JSON.stringify(payload));
             showToast(gs.savedToast || 'Search saved.');
         } catch {
             showToast('Could not save.');
         }
-    }, [applied, gs.savedToast, showToast]);
+    }, [applied, gs.savedToast, showToast, template?.id]);
 
     const applySaved = useCallback(() => {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
+            const raw = localStorage.getItem(storageKeyForTemplate(template?.id));
             if (!raw) return;
             const parsed = JSON.parse(raw);
-            const base = defaultApplied();
+            const base = buildDefaultApplied(template);
             const next = { ...base, ...parsed, page: 1 };
             setDraft(next);
             setApplied(next);
         } catch {
             /* ignore */
         }
-    }, []);
+    }, [template]);
 
     const clearSaved = useCallback(() => {
         try {
-            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(storageKeyForTemplate(template?.id));
             showToast(gs.clearedToast || 'Cleared.');
         } catch {
             /* ignore */
         }
-    }, [gs.clearedToast, showToast]);
+    }, [gs.clearedToast, showToast, template?.id]);
 
     const setSort = useCallback(
         (column) => {

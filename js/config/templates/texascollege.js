@@ -25,6 +25,7 @@ export const texascollegeTemplate = {
         chatAssistantSubtitle: 'Chat with athletic booster and engagement data',
         chatAssistantEmptyBody: 'Ask about at-risk donors, major gifts, affinity scores, or engagement trends.',
         chatAssistantEmptyTry: 'Try: "Who are our at-risk major gift donors?"',
+        generateAlumniEmailLabel: 'Generate alumni email',
         promoBar: {
             text: 'Spring Giving Drive — Support Texas College Athletics. Every gift fuels student-athlete success.',
             href: '#giving',
@@ -103,6 +104,10 @@ export const texascollegeTemplate = {
         ],
         dashboards: [
             {
+                title: 'Engagement Drop Timeline',
+                id: 'engagement-drop-timeline',
+            },
+            {
                 title: 'Booster Engagement — At-Risk Donors',
                 id: 'booster-at-risk-engagement',
             },
@@ -115,6 +120,19 @@ export const texascollegeTemplate = {
                 id: 'at-risk-engagement-health-overview',
             },
         ],
+        engagementTimeline: {
+            demoDonorId: 'ALUM-10001',
+            demoDonorName: 'James Chen',
+            inflectionDate: '2025-09-01',
+            startDate: '2024-03-01',
+            dashboardId: 'engagement-drop-timeline',
+        },
+        workflows: {
+            alumniEmail: {
+                workflowId: 'texas-college-alumni-outreach-email',
+                toolId: 'booster-alumni-email-workflow',
+            },
+        },
     },
 
     search: {
@@ -142,4 +160,15 @@ export const texascollegeTemplate = {
             image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80',
         },
     ],
+
+    login: {
+        headline: 'Track, engage, and grow athletic giving — all in one place.',
+        ssoButtonLabel: 'Continue with campus SSO',
+        features: [
+            'View donor affinity scores and engagement health',
+            'Identify at-risk major gifts before they lapse',
+            'Explore booster events, email opens, and portal activity',
+            'Connect with advancement officers and donor analytics',
+        ],
+    },
 };

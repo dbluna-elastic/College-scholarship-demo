@@ -1,0 +1,120 @@
+/**
+ * Shared UI for Elastic Workflow–generated email drafts (preview + mailto).
+ */
+
+import { useContext, useState } from 'react';
+import { TemplateContext } from '../context/TemplateContext.jsx';
+import { buildMailtoHref } from '../../modules/utils/workflowEmailUtils.js';
+
+export default function WorkflowEmailButton({
+    entityId,
+    recipientEmail = '',
+    label = 'Generate email',
+    workflowId = '',
+    onGenerate,
+    className = '',
+    variant = 'primary',
+    compact = false,
+    disabled = false,
+}) {
+    const template = useContext(TemplateContext);
+    const primaryColor = template?.colors?.primary || '#0C2340';
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [preview, setPreview] = useState(null);
+
+    const handleGenerate = async () => {
+        if (!entityId || loading || disabled) return;
+        setLoading(true);
+        setError(null);
+        setPreview(null);
+
+        try {
+            const result = await onGenerate(entityId, recipientEmail);
+            setPreview(result);
+        } catch (err) {
+            setError(err?.message || 'Failed to generate email from workflow.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleOpenMailto = () => {
+        if (!preview) return;
+        const to = recipientEmail || preview.recipientEmail || '';
+        window.location.href = buildMailtoHref(preview.subject, preview.body, to);
+    };
+
+    const baseClass = compact
+        ? 'border border-gray-300 text-gray-700 bg-white hover:bg-gray-100 px-3 py-1 text-xs font-medium'
+        : variant === 'secondary'
+            ? 'border border-gray-300 text-gray-800 bg-white hover:bg-gray-50'
+            : 'text-white hover:opacity-90';
+
+    const sizeClass = compact ? '' : 'px-5 py-2.5 text-sm font-bold';
+
+    return (
+        <div className={className}>
+            <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={!entityId || loading || disabled}
+                className={`inline-flex items-center gap-2 rounded-full transition-opacity disabled:opacity-50 ${sizeClass} ${baseClass}`}
+                style={!compact && variant === 'primary' ? { backgroundColor: primaryColor } : undefined}
+            >
+                {loading ? (
+                    <>
+                        <span
+                            className={`inline-block animate-spin rounded-full border-2 border-t-transparent ${compact ? 'h-3 w-3 border-gray-400' : 'h-4 w-4 border-white/40 border-t-white'}`}
+                            aria-hidden="true"
+                        />
+                        {compact ? '…' : 'Running workflow…'}
+                    </>
+                ) : (
+                    <>
+                        {!compact && (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        )}
+                        {label}
+                    </>
+                )}
+            </button>
+
+            {error && (
+                <p className="mt-2 text-sm text-red-600" role="alert">{error}</p>
+            )}
+
+            {preview && (
+                <div className={`${compact ? 'mt-2 max-w-md' : 'mt-4'} rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm`}>
+                    <p className="font-semibold text-gray-900 mb-1">Subject: {preview.subject}</p>
+                    <pre className="whitespace-pre-wrap text-gray-700 text-xs leading-relaxed max-h-48 overflow-y-auto mb-3">{preview.body}</pre>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={handleOpenMailto}
+                            className="px-4 py-2 rounded-full text-xs font-bold text-white"
+                            style={{ backgroundColor: primaryColor }}
+                        >
+                            Open in email client
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigator.clipboard?.writeText(`${preview.subject}\n\n${preview.body}`)}
+                            className="px-4 py-2 rounded-full text-xs font-semibold border border-gray-300 text-gray-700 hover:bg-white"
+                        >
+                            Copy text
+                        </button>
+                    </div>
+                    {workflowId && (
+                        <p className="mt-2 text-xs text-gray-500">
+                            Generated by Elastic Workflow <code className="text-gray-600">{workflowId}</code>
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}

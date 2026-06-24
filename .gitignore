@@ -17,3 +17,6 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Generated booster demo data
+scripts/booster/engagement_events_daily.ndjson
