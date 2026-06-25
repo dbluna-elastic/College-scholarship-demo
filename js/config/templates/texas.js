@@ -86,7 +86,7 @@ export const texasTemplate = {
 
     // Elastic Configuration
     elastic: {
-        agentId: null,  // Can be overridden via environment variable
+        agentId: 'texas-scholarship-counselor',
     },
     
     // Search Configuration

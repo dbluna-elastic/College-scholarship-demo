@@ -11,6 +11,15 @@ Configure matching tools in Kibana (gawdzilla) so the agent uses narrow, fast lo
 - API key: `OK_KIBANA_API_KEY` in `.env`
 - Do **not** set `ELASTIC_AGENT_ID` unless you intend to override the template agent globally
 
+## Automated setup
+
+```bash
+python3 scripts/grants/setup_agent.py
+python3 scripts/grants/setup_workflow.py
+```
+
+`setup_agent.py` creates all ES|QL tools below and the `ok-grants-data` agent (including the program email workflow tool ID).
+
 ## Recommended custom tools
 
 Add these tools in **Stack Management → Agent Builder → ok-grants-data → Tools**. Use tool IDs exactly as listed so the UI shows friendly step labels.

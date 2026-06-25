@@ -234,6 +234,12 @@ export const okmentalhealthTemplate = {
         grantsDataAgentId: 'ok-fraud',
         grantsSearchSize: 500,
         kibanaUrl: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+        workflows: {
+            programEmail: {
+                workflowId: 'ok-grant-program-officer-email',
+                toolId: 'ok-grants-program-email-workflow',
+            },
+        },
         dashboards: {
             fraud: [
                 {

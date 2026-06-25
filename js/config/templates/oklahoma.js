@@ -86,7 +86,7 @@ export const oklahomaTemplate = {
 
     // Elastic Configuration
     elastic: {
-        agentId: null,  // Can be overridden via environment variable
+        agentId: 'oklahoma-scholarship-counselor',
     },
     
     // Search Configuration

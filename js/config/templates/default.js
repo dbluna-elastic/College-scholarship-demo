@@ -83,7 +83,7 @@ export const defaultTemplate = {
 
     // Elastic Configuration
     elastic: {
-        agentId: 'studentcounselor',
+        agentId: 'scholarship-counselor-default',
     },
     
     // Search Configuration

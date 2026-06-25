@@ -132,7 +132,7 @@ export const dotTemplate = {
     },
 
     elastic: {
-        agentId: null,
+        agentId: 'dot-transportation-assistant',
     },
 
     search: {

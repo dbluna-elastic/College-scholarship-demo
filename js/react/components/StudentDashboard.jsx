@@ -633,8 +633,8 @@ function StudentDashboard({ onLogout, campusId }) {
                 </div>
             </footer>
 
-            {/* Chat Widget - Floating (studentcounselor on Gawdzilla) */}
-            <ChatWidget floating openSignal={chatOpenSignal} agentId="studentcounselor" />
+            {/* Chat Widget - Floating (template-specific scholarship agent) */}
+            <ChatWidget floating openSignal={chatOpenSignal} agentId={template?.elastic?.agentId} />
 
             {successToast && (
                 <div className="fixed top-4 right-4 z-[70] bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">

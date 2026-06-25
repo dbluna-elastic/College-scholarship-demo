@@ -91,7 +91,7 @@ export const beauregardTemplate = {
 
     // Elastic Configuration
     elastic: {
-        agentId: null,  // Can be overridden via environment variable
+        agentId: 'beauregard-scholarship-counselor',
     },
     
     // Search Configuration

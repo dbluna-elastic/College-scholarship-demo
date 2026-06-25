@@ -40,6 +40,16 @@ Add dashboard controls for `donor_id` and date range. Default donor: `ALUM-10001
 
 Update `js/config/templates/texascollege.js` `elastic.dashboards` with the saved dashboard ID once created.
 
+## Agent Builder (booster-donor-data)
+
+Create ES|QL tools and the booster donor chat agent:
+
+```bash
+python3 scripts/booster/setup_agent.py
+```
+
+Tool IDs: `booster-donor-portfolio-stats`, `booster-at-risk-donors`, `booster-at-risk-major-gifts`, `booster-top-affinity-donors`, `booster-donor-by-id`, `booster-engagement-events-summary`, `booster-case-metrics`.
+
 ## Alumni outreach email workflow
 
 Deploy the Elastic Workflow + Agent Builder tool used by **Generate alumni email** on the donor scorecard:
@@ -50,3 +60,5 @@ python3 scripts/booster/setup_workflow.py
 
 - Workflow: `texas-college-alumni-outreach-email` (ES|QL donor profile + engagement + AI draft)
 - Tool: `booster-alumni-email-workflow` (attached to `booster-donor-data` agent)
+
+Run `setup_agent.py` after `setup_workflow.py` if you need the agent to reference the workflow tool on a fresh cluster.
