@@ -15,6 +15,7 @@ import {
 import { tryGrantsChatFastPath, GRANTS_AGENT } from './grantsChatFastPath.js';
 import { tryFraudChatFastPath, FRAUD_AGENT } from './fraudChatFastPath.js';
 import { tryOjaChatFastPath, OJA_AGENT } from './ojaChatFastPath.js';
+import { tryGamedayChatFastPath, GAMEDAY_AGENT } from './gamedayChatFastPath.js';
 
 const BOOSTER_AGENT = 'booster-donor-data';
 
@@ -23,7 +24,11 @@ const BOOSTER_AGENT = 'booster-donor-data';
  * @returns {boolean}
  */
 export function canUseChatFastPath(agentId) {
-    return agentId === BOOSTER_AGENT || agentId === GRANTS_AGENT || agentId === FRAUD_AGENT || agentId === OJA_AGENT;
+    return agentId === BOOSTER_AGENT
+        || agentId === GRANTS_AGENT
+        || agentId === FRAUD_AGENT
+        || agentId === OJA_AGENT
+        || agentId === GAMEDAY_AGENT;
 }
 
 function formatCurrency(value) {
@@ -105,6 +110,10 @@ export async function tryChatFastPath(agentId, message) {
 
     if (agentId === OJA_AGENT) {
         return tryOjaChatFastPath(agentId, message);
+    }
+
+    if (agentId === GAMEDAY_AGENT) {
+        return tryGamedayChatFastPath(agentId, message);
     }
 
     if (agentId !== BOOSTER_AGENT) return null;

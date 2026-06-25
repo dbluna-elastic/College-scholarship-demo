@@ -12,7 +12,7 @@ import { useContext } from 'react';
 import { getEnvVar } from '../../modules/utils/getEnvVar.js';
 import DonorChatMessage from './DonorChatMessage.jsx';
 
-function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDonorClick, openSignal = 0 }) {
+function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDonorClick, openSignal = 0, chatContext = 'default' }) {
     const template = useContext(TemplateContext);
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -34,28 +34,34 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
     }
 
     const content = template?.content || {};
-    const chatTitle = content.chatAssistantTitle ?? 'Chat Assistant';
-    const chatSubtitle =
-        content.chatAssistantSubtitle ??
+    const isGamedayAgent = agentId === 'gameday-revenue-data' || chatContext === 'gameday';
+    const chatTitle = isGamedayAgent
+        ? (content.gamedayChatAssistantTitle ?? 'Game Day Revenue Assistant')
+        : (content.chatAssistantTitle ?? 'Chat Assistant');
+    const chatSubtitle = isGamedayAgent
+        ? (content.gamedayChatAssistantSubtitle ?? 'Ask about the 100-item team store catalog, top sellers, and merchandise revenue')
+        : (content.chatAssistantSubtitle ??
         (agentId === 'ok-fraud'
             ? 'Ask me about fraud detection and compliance'
             : agentId === 'booster-donor-data'
             ? 'Ask me about athletic booster and donor engagement data'
-            : 'Ask me about scholarships');
-    const chatEmptyBody =
-        content.chatAssistantEmptyBody ??
+            : 'Ask me about scholarships'));
+    const chatEmptyBody = isGamedayAgent
+        ? (content.gamedayChatAssistantEmptyBody ?? 'Ask about stadium retail SKUs, top-selling apparel, team store locations, or combined ticket + merch revenue.')
+        : (content.chatAssistantEmptyBody ??
         (agentId === 'ok-fraud'
             ? 'Ask about fraud indicators, investigations, or compliance.'
             : agentId === 'booster-donor-data'
             ? 'Ask about at-risk donors, major gifts, affinity scores, or engagement trends.'
-            : 'Start a conversation by asking about scholarships!');
-    const chatEmptyTry =
-        content.chatAssistantEmptyTry ??
+            : 'Start a conversation by asking about scholarships!'));
+    const chatEmptyTry = isGamedayAgent
+        ? (content.gamedayChatAssistantEmptyTry ?? 'Try: "Show the stadium retail catalog" or "What are our top-selling items?"')
+        : (content.chatAssistantEmptyTry ??
         (agentId === 'ok-fraud'
             ? 'Try: "What are common fraud indicators?"'
             : agentId === 'booster-donor-data'
             ? 'Try: "Who are our at-risk major gift donors?"'
-            : 'Try: "What scholarships are available?"');
+            : 'Try: "What scholarships are available?"'));
 
     const {
         messages,

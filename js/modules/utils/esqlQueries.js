@@ -1274,6 +1274,189 @@ export async function getBoosterDonorEngagementTimeline(donorId, agentId = BOOST
     }
 }
 
+const GAMEDAY_AGENT = 'gameday-revenue-data';
+
+/**
+ * Combined game-day revenue summary from Paciolan tickets + Square POS.
+ * @param {string} [agentId]
+ * @returns {Promise<{ticketScans: number|null, ticketRevenue: number|null, avgTicketPrice: number|null, posTransactions: number|null, posRevenue: number|null, avgPosTicket: number|null, combinedRevenue: number|null, resaleScans: number|null}>}
+ */
+export async function getGamedayRevenueSummary(agentId = GAMEDAY_AGENT) {
+    const ticketQuery = 'FROM paciolan-ticket-events | STATS scans = COUNT(*), ticket_revenue = SUM(ticket_price), avg_price = AVG(ticket_price) | LIMIT 1';
+    const retailQuery = 'FROM stadium-retail-sales | STATS txns = COUNT(*), retail_revenue = SUM(total_amount), units_sold = SUM(quantity), avg_txn = AVG(total_amount) | LIMIT 1';
+    const resaleQuery = 'FROM paciolan-ticket-events | STATS resale = COUNT(*) WHERE is_resale == true | LIMIT 1';
+
+    try {
+        const [ticketResult, retailResult, resaleResult] = await Promise.all([
+            fetchESQLQuery(ticketQuery, {}, agentId),
+            fetchESQLQuery(retailQuery, {}, agentId),
+            fetchESQLQuery(resaleQuery, {}, agentId),
+        ]);
+
+        const idx = (result, name) => result?.columns?.findIndex((c) => c.name === name) ?? -1;
+        const val = (result, name) => {
+            const i = idx(result, name);
+            return i >= 0 && result?.values?.[0] ? Number(result.values[0][i]) : null;
+        };
+
+        const ticketRevenue = val(ticketResult, 'ticket_revenue');
+        const retailRevenue = val(retailResult, 'retail_revenue');
+
+        return {
+            ticketScans: val(ticketResult, 'scans'),
+            ticketRevenue,
+            avgTicketPrice: val(ticketResult, 'avg_price'),
+            retailTransactions: val(retailResult, 'txns'),
+            retailRevenue,
+            retailUnits: val(retailResult, 'units_sold'),
+            avgRetailTicket: val(retailResult, 'avg_txn'),
+            posTransactions: val(retailResult, 'txns'),
+            posRevenue: retailRevenue,
+            avgPosTicket: val(retailResult, 'avg_txn'),
+            combinedRevenue: ticketRevenue != null && retailRevenue != null ? ticketRevenue + retailRevenue : null,
+            resaleScans: val(resaleResult, 'resale'),
+            catalogItemCount: 100,
+        };
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) {
+            return {
+                ticketScans: null,
+                ticketRevenue: null,
+                avgTicketPrice: null,
+                retailTransactions: null,
+                retailRevenue: null,
+                retailUnits: null,
+                avgRetailTicket: null,
+                posTransactions: null,
+                posRevenue: null,
+                avgPosTicket: null,
+                combinedRevenue: null,
+                resaleScans: null,
+                catalogItemCount: 100,
+            };
+        }
+        throw error;
+    }
+}
+
+/** @param {string} [agentId] @returns {Promise<Array<Object>>} */
+export async function getGamedayTicketRevenueByFanTier(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM paciolan-ticket-events | STATS revenue = SUM(ticket_price), scans = COUNT(*) BY fan_tier | SORT revenue DESC | LIMIT 10';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @param {string} [agentId] @returns {Promise<Array<Object>>} */
+export async function getGamedayTicketRevenueByType(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM paciolan-ticket-events | STATS revenue = SUM(ticket_price), scans = COUNT(*) BY ticket_type | SORT revenue DESC | LIMIT 10';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @param {string} [agentId] @returns {Promise<Array<Object>>} */
+export async function getGamedayGateTraffic(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM paciolan-ticket-events | STATS scans = COUNT(*), revenue = SUM(ticket_price) BY gate | SORT scans DESC | LIMIT 8';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @param {string} [agentId] @returns {Promise<Array<Object>>} */
+export async function getGamedayRetailByCategory(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM stadium-retail-sales | STATS revenue = SUM(total_amount), units = SUM(quantity), txns = COUNT(*) BY category | SORT revenue DESC | LIMIT 10';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @param {string} [agentId] @returns {Promise<Array<Object>>} */
+export async function getGamedayTopRetailItems(agentId = GAMEDAY_AGENT, limit = 15) {
+    const query = `FROM stadium-retail-sales | STATS revenue = SUM(total_amount), units = SUM(quantity), txns = COUNT(*) BY sku, item_name, category | SORT revenue DESC | LIMIT ${Math.min(limit, 25)}`;
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** Full 100-item stadium retail catalog (campus bookstore / team store SKUs). @param {string} [agentId] */
+export async function getGamedayRetailCatalog(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM stadium-retail-catalog | KEEP sku, item_name, category, subcategory, unit_price, available_stadium | SORT category ASC, item_name ASC | LIMIT 100';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @param {string} [agentId] @returns {Promise<Array<Object>>} */
+export async function getGamedayRetailByLocation(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM stadium-retail-sales | STATS revenue = SUM(total_amount), units = SUM(quantity), txns = COUNT(*) BY location_name | SORT revenue DESC | LIMIT 8';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @deprecated Use getGamedayRetailByCategory — concessions index no longer used in dashboard */
+export async function getGamedayPosRevenueByCategory(agentId = GAMEDAY_AGENT) {
+    return getGamedayRetailByCategory(agentId);
+}
+
+/** @deprecated Use getGamedayRetailByLocation */
+export async function getGamedayPosRevenueByZone(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM stadium-retail-sales | STATS revenue = SUM(total_amount), txns = COUNT(*) BY location_zone | SORT revenue DESC | LIMIT 8';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
+/** @deprecated Use getGamedayRetailByLocation */
+export async function getGamedayTopConcessionStands(agentId = GAMEDAY_AGENT) {
+    return getGamedayRetailByLocation(agentId);
+}
+
+/** @param {string} [agentId] @returns {Promise<Array<Object>>} */
+export async function getGamedayHourlyGateScans(agentId = GAMEDAY_AGENT) {
+    const query = 'FROM paciolan-ticket-events | EVAL hour = DATE_TRUNC(1 hour, scan_timestamp) | STATS scans = COUNT(*) BY hour | SORT hour ASC | LIMIT 24';
+    try {
+        const result = await fetchESQLQuery(query, {}, agentId);
+        return mapEsqlRows(result);
+    } catch (error) {
+        if (error.isIndexNotFound || error.status === 404) return [];
+        throw error;
+    }
+}
+
 const OK_FRAUD_AGENT = 'ok-fraud';
 
 async function runOkFraudEsql(query) {

@@ -36,6 +36,16 @@ const TOOL_STEP_LABELS = {
     'oja-case-notes-search': 'Searching case notes…',
     'oja-county-caseload': 'Breaking down caseload by county…',
     'oja-supervisor-email-workflow': 'Drafting supervisor email…',
+    'gameday-revenue-summary': 'Summarizing gameday ticket revenue…',
+    'gameday-retail-summary': 'Summarizing team store retail revenue…',
+    'gameday-retail-catalog': 'Loading 100-item stadium retail catalog…',
+    'gameday-retail-by-category': 'Analyzing merchandise by category…',
+    'gameday-top-retail-items': 'Ranking top-selling SKUs…',
+    'gameday-retail-by-location': 'Loading team store locations…',
+    'gameday-retail-by-sku': 'Looking up retail SKU…',
+    'gameday-ticket-by-fan-tier': 'Analyzing fan tier ticket revenue…',
+    'gameday-ticket-by-gate': 'Loading gate traffic…',
+    'gameday-by-game-id': 'Looking up game retail sales…',
     'platform.core.search': 'Searching grant data…',
     'platform.core.generate_esql': 'Generating query…',
     'platform.core.get_document_by_id': 'Fetching document…',
@@ -47,7 +57,7 @@ const TOOL_STEP_LABELS = {
  */
 export function getToolStepLabel(toolId) {
     if (!toolId) return 'Working on your question…';
-    return TOOL_STEP_LABELS[toolId] || `Running ${toolId.replace(/^booster-/, '').replace(/-/g, ' ')}…`;
+    return TOOL_STEP_LABELS[toolId] || `Running ${toolId.replace(/^(booster-|gameday-|oja-)/, '').replace(/-/g, ' ')}…`;
 }
 
 /**

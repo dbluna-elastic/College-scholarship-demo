@@ -28,7 +28,7 @@ import OkCommerceCompanyDashboard from './components/OkCommerceCompanyDashboard.
 import OkAgencyStaffDashboard from './components/OkAgencyStaffDashboard.jsx';
 import OkAgencyBusinessScorecard from './components/OkAgencyBusinessScorecard.jsx';
 import StateAgencyGrantsSearch from './components/StateAgencyGrantsSearch.jsx';
-import BoosterEngagementDashboard from './components/BoosterEngagementDashboard.jsx';
+import TexasCollegeStaffPortal from './components/TexasCollegeStaffPortal.jsx';
 import BoosterDonorScorecard from './components/BoosterDonorScorecard.jsx';
 import OkAgencyPortalHeader from './components/okagency/OkAgencyPortalHeader.jsx';
 import OkAgencyFooter from './components/okagency/OkAgencyFooter.jsx';
@@ -262,7 +262,7 @@ function App() {
     if (activeSection === 'counselor-dashboard') {
         if (template?.id === 'texascollege') {
             return (
-                <BoosterEngagementDashboard
+                <TexasCollegeStaffPortal
                     onLogout={handleLogout}
                     onDonorClick={handleDonorClick}
                 />

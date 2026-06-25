@@ -26,9 +26,22 @@ export const texascollegeTemplate = {
         chatAssistantEmptyBody: 'Ask about at-risk donors, major gifts, affinity scores, or engagement trends.',
         chatAssistantEmptyTry: 'Try: "Who are our at-risk major gift donors?"',
         generateAlumniEmailLabel: 'Generate alumni email',
+        gamedayChatAssistantTitle: 'Game Day Retail Assistant',
+        gamedayChatAssistantSubtitle: 'Ask about the 100-item team store catalog, top sellers, and gameday merchandise revenue',
+        gamedayChatAssistantEmptyBody: 'Ask about stadium retail SKUs, top-selling apparel, team store locations, or combined ticket + merch revenue.',
+        gamedayChatAssistantEmptyTry: 'Try: "Show the stadium retail catalog" or "What are our top-selling items?"',
         promoBar: {
             text: 'Spring Giving Drive — Support Texas College Athletics. Every gift fuels student-athlete success.',
             href: '#giving',
+        },
+        staffDashboard: {
+            pageTitle: 'Athletic Advancement Dashboard',
+            subtitle: 'Live insights from athletic-boosters, booster-engagement-events, and booster-case-metrics on the gawdzilla Elastic deployment.',
+            gamedaySubtitle: 'Team store retail from a 100-item campus bookstore catalog — jerseys, apparel, gifts, and fan gear at stadium shops.',
+            tabs: {
+                donors: 'Donor Engagement',
+                gameday: 'Game Day Revenue',
+            },
         },
     },
 
@@ -96,30 +109,55 @@ export const texascollegeTemplate = {
         agentId: 'booster-donor-data',
         kibanaUrl: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
         boosterDataAgentId: 'booster-donor-data',
+        gamedayDataAgentId: 'gameday-revenue-data',
         indexes: [
             'athletic-boosters',
             'booster-case-metrics',
             'booster-donor-lookup',
             'booster-engagement-events',
+            'paciolan-ticket-events',
+            'stadium-retail-catalog',
+            'stadium-retail-sales',
         ],
         dashboards: [
             {
                 title: 'Engagement Drop Timeline',
                 id: 'engagement-drop-timeline',
+                section: 'donors',
             },
             {
                 title: 'Booster Engagement — At-Risk Donors',
                 id: 'booster-at-risk-engagement',
+                section: 'donors',
             },
             {
                 title: 'Athletic Donor Affinity Intelligence',
                 id: '7310b773-f28e-49b6-bdb5-d9e3f8589b72',
+                section: 'donors',
             },
             {
                 title: 'Engagement Health Overview — At-Risk Major Gifts',
                 id: 'at-risk-engagement-health-overview',
+                section: 'donors',
             },
         ],
+        gamedayRevenue: {
+            demoGameId: 'GAME-2025-HOME-01',
+            gameLabel: '2025 Home Opener vs. State',
+            catalogSourceLabel: 'Campus bookstore assortment',
+            catalogItemCount: 100,
+            indexes: ['paciolan-ticket-events', 'stadium-retail-catalog', 'stadium-retail-sales'],
+            dashboards: [
+                {
+                    title: 'Game Day Revenue — Live Overview',
+                    id: 'gameday-revenue-overview',
+                },
+                {
+                    title: 'Game Day Revenue — Fan Segments & Anomalies',
+                    id: 'gameday-fan-segments',
+                },
+            ],
+        },
         engagementTimeline: {
             demoDonorId: 'ALUM-10001',
             demoDonorName: 'James Chen',
@@ -132,6 +170,10 @@ export const texascollegeTemplate = {
                 workflowId: 'texas-college-alumni-outreach-email',
                 toolId: 'booster-alumni-email-workflow',
             },
+        },
+        agents: {
+            donors: 'booster-donor-data',
+            gameday: 'gameday-revenue-data',
         },
     },
 
@@ -168,6 +210,7 @@ export const texascollegeTemplate = {
             'View donor affinity scores and engagement health',
             'Identify at-risk major gifts before they lapse',
             'Explore booster events, email opens, and portal activity',
+            'Monitor gameday ticket and team store merchandise revenue in real time',
             'Connect with advancement officers and donor analytics',
         ],
     },

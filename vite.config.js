@@ -114,6 +114,29 @@ export default defineConfig({
                     });
                 },
             },
+            '/api/elastic/agent/gameday-revenue-data/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (gameday-revenue-data) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/gameday-revenue-data/tools/_execute': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/tools/_execute',
+                configure: (proxy) => {
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder tool execute (gameday-revenue-data) proxy error:', err);
+                    });
+                },
+            },
             '/api/elastic/agent/ok-fraud/chat': {
                 target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
                 changeOrigin: true,
@@ -151,6 +174,16 @@ export default defineConfig({
                 configure: (proxy) => {
                     proxy.on('error', (err, req, res) => {
                         console.error('Agent Builder (booster-donor-data) proxy error:', err);
+                    });
+                }
+            },
+            '/api/elastic/agent/gameday-revenue-data/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (gameday-revenue-data) proxy error:', err);
                     });
                 }
             },
