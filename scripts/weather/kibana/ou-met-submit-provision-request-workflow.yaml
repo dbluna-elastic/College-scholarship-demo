@@ -1,0 +1,72 @@
+version: "1"
+name: OU Met Submit Provision Request
+description: Auto-queue a provisioning-requests document when catalog delivery rules require mount or approval.
+enabled: true
+inputs:
+  - name: request_id
+    type: string
+    required: true
+  - name: researcher_id
+    type: string
+    required: true
+  - name: researcher_email
+    type: string
+    required: false
+    default: ""
+  - name: dataset_ref
+    type: string
+    required: true
+  - name: dataset_name
+    type: string
+    required: true
+  - name: target_vm
+    type: string
+    required: true
+  - name: mount_path
+    type: string
+    required: true
+  - name: access_tier
+    type: string
+    required: false
+    default: public
+  - name: source_path
+    type: string
+    required: false
+    default: ""
+  - name: submitted_at
+    type: string
+    required: true
+  - name: delivery_mode
+    type: string
+    required: true
+  - name: estimated_ready_at
+    type: string
+    required: false
+    default: ""
+triggers:
+  - type: manual
+steps:
+  - name: index_request
+    type: elasticsearch.request
+    with:
+      method: POST
+      path: /provisioning-requests/_doc/{{ inputs.request_id }}
+      body:
+        request_id: "{{ inputs.request_id }}"
+        researcher_id: "{{ inputs.researcher_id }}"
+        researcher_email: "{{ inputs.researcher_email }}"
+        dataset_ref: "{{ inputs.dataset_ref }}"
+        dataset_name: "{{ inputs.dataset_name }}"
+        target_vm: "{{ inputs.target_vm }}"
+        mount_path: "{{ inputs.mount_path }}"
+        access_tier: "{{ inputs.access_tier }}"
+        source_path: "{{ inputs.source_path }}"
+        submitted_at: "{{ inputs.submitted_at }}"
+        delivery_mode: "{{ inputs.delivery_mode }}"
+        estimated_ready_at: "{{ inputs.estimated_ready_at }}"
+        status: pending
+        status_history:
+          - timestamp: "{{ inputs.submitted_at }}"
+            status: pending
+            message: "Auto-queued by catalog delivery rules — researcher will be notified when ready"
+            actor: system

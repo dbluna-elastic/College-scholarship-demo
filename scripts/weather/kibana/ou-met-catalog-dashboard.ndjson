@@ -1,0 +1,1 @@
+{"id": "ou-met-catalog-dashboard", "type": "dashboard", "namespaces": ["default"], "attributes": {"title": "OU Meteorology Data Catalog"}, "references": [{"id": "ou-met-catalog-search", "type": "search", "name": "panel_1"}]}

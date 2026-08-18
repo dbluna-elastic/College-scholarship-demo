@@ -12,10 +12,10 @@ import { maskValue } from './maskValue.js';
 import { tracedFetch } from './tracingHelpers.js';
 
 /** Agent Builder agents served from gawdzilla (OK_KIBANA_URL / OK_KIBANA_API_KEY), not ELASTIC_KB_URL. */
-const GAWDZILLA_AGENT_BUILDER_IDS = new Set(['ok-fraud', 'ok-grants-data', 'booster-donor-data', 'ok-oja-data', 'gameday-revenue-data']);
+const GAWDZILLA_AGENT_BUILDER_IDS = new Set(['ok-fraud', 'ok-grants-data', 'booster-donor-data', 'ok-oja-data', 'gameday-revenue-data', 'ou-met-catalog-agent', 'ou-met-provisioning-agent', 'snap-fraud-investigator', 'okstate-donor-assistant', 'okstate-gameday-revenue-assistant']);
 
 /** ESQL / _search on gawdzilla Elasticsearch (OK_ELASTIC_ES_URL proxy path). */
-const GAWDZILLA_ES_AGENT_IDS = new Set(['ok-fraud', 'booster-donor-data', 'ok-oja-data', 'gameday-revenue-data']);
+const GAWDZILLA_ES_AGENT_IDS = new Set(['ok-fraud', 'booster-donor-data', 'ok-oja-data', 'gameday-revenue-data', 'snap-fraud-investigator', 'okstate-donor-assistant', 'okstate-gameday-revenue-assistant']);
 
 function usesGawdzillaAgentBuilder(agentId) {
     return Boolean(agentId && GAWDZILLA_AGENT_BUILDER_IDS.has(String(agentId)));
@@ -38,6 +38,8 @@ function getAgentBuilderToolExecutePath(agentId) {
         'booster-donor-data': '/api/elastic/booster-donor-data/tools/_execute',
         'ok-grants-data': '/api/elastic/ok-grants-data/tools/_execute',
         'gameday-revenue-data': '/api/elastic/gameday-revenue-data/tools/_execute',
+        'okstate-donor-assistant': '/api/elastic/booster-donor-data/tools/_execute',
+        'okstate-gameday-revenue-assistant': '/api/elastic/gameday-revenue-data/tools/_execute',
     };
     if (paths[agentId]) return paths[agentId];
     if (usesGawdzillaAgentBuilder(agentId)) {

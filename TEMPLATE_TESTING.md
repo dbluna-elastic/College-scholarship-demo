@@ -23,7 +23,10 @@ The template engine tries these methods in order:
 - `okmentalhealth` - Oklahoma Department of Mental Health (same overlay layout, mental health content)
 - `dot` - Department of Transportation (State Agency, Gov aesthetic)
 - `texascollege` - Texas College athletic booster & game day revenue portal
+- `okstate` - Oklahoma State athletic booster & game day revenue portal
 - `okoja` - Oklahoma Office of Juvenile Affairs staff portal
+- `oumet` - OU School of Meteorology THREDDS catalog & data provisioning
+- `snapfraud` - SNAP/EBT fraud detection investigator portal (gawdzilla snap-* indices)
 
 ## Agent Builder agents by template
 
@@ -37,7 +40,10 @@ The template engine tries these methods in order:
 | `okagency` | `ok-grants-data` | `scripts/grants/setup_agent.py` |
 | `okmentalhealth` | `ok-grants-data` (public chat), `ok-fraud` (staff) | grants + fraud scripts |
 | `texascollege` | `booster-donor-data`, `gameday-revenue-data` | booster + gameday scripts |
+| `okstate` | `okstate-donor-assistant`, `okstate-gameday-revenue-assistant` | `scripts/okstate/setup_workflow.py` (chat agents already on Gawdzilla) |
 | `okoja` | `ok-oja-data` | `scripts/oja/setup_agent.py` |
+| `oumet` | `ou-met-catalog-agent`, `ou-met-provisioning-agent` | `scripts/weather/run_demo.py` |
+| `snapfraud` | `snap-fraud-investigator` | `snap-demo/scripts/setup_agent_builder.py` (see `scripts/snap/README.md`) |
 
 Provision all agents: `bash scripts/setup_all_agents.sh` (requires `OK_KIBANA_API_KEY` / `ELASTIC_API_KEY` in `.env`).
 
@@ -80,10 +86,56 @@ Provision all agents: `bash scripts/setup_all_agents.sh` (requires `OK_KIBANA_AP
    http://localhost:8089?template=texascollege
    ```
 
-8. **OJA Juvenile Justice (okoja) Template:**
+   Staff login: password `staff` → Athletic Advancement Dashboard (Donor Engagement + Game Day Revenue).
+
+8. **Oklahoma State (okstate) Template:**
+   ```
+   http://localhost:8089?template=okstate
+   ```
+
+   Staff login: password `staff` → Athletic Advancement Dashboard (Donor Engagement + Game Day Revenue).
+
+   Chat agents: `okstate-donor-assistant` (donors tab), `okstate-gameday-revenue-assistant` (game day tab).
+
+   Game Day uses Boone Pickens **tickets + Square POS** (`okstate-paciolan-ticket-events`, `okstate-square-pos-transactions`), not the Texas College bookstore catalog.
+
+   Demo chat prompts (game day tab):
+   - *"How much combined gameday revenue did we make?"*
+   - *"Which stands are performing best?"*
+   - *"What happened at Club Orange during the payment outage?"* → S04 / S06 / S09 near-zero txns 15:50–16:05 UTC
+
+   Alumni email workflow: `oklahoma-state-alumni-outreach-email` (deploy with `python3 scripts/okstate/setup_workflow.py`).
+
+9. **OJA Juvenile Justice (okoja) Template:**
    ```
    http://localhost:8089?template=okoja
    ```
+
+10. **OU Meteorology (oumet) Template:**
+   ```
+   http://localhost:8089?template=oumet
+   ```
+
+   Staff login: password `staff` → Data Provisioning Operations portal.
+
+   Demo chat prompts (catalog agent):
+   - *"I need GFS reanalysis for September 2017"* → auto_mount + ETA
+   - *"What HRRR files are available?"* → direct OPeNDAP
+   - *"I need CCS034 research data"* → approval_required
+
+   **Catalog Access drawer:** scroll to **Data Catalog**, click any row (try the featured **Irma NEXRAD** row) to open OPeNDAP / HTTPServer / CdmRemote links with copy and preview actions.
+
+11. **SNAP Fraud Detection (snapfraud) Template:**
+   ```
+   http://localhost:8089?template=snapfraud
+   ```
+
+   Staff login: password `staff` → SNAP Fraud Investigator Portal.
+
+   Demo chat prompts:
+   - *"Which stores show same-cent trafficking?"* → store 4471
+   - *"Show cross-state identity fraud"* → seeded SSN hash
+   - *"Which deceased beneficiaries are still transacting?"* → hh_deceased_demo_001
 
 ### Method 2: Environment Variable
 

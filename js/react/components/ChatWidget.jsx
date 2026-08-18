@@ -10,12 +10,35 @@ import { useAgentBuilder } from '../hooks/useAgentBuilder.js';
 import { TemplateContext } from '../context/TemplateContext.jsx';
 import { useContext } from 'react';
 import { getEnvVar } from '../../modules/utils/getEnvVar.js';
-import DonorChatMessage from './DonorChatMessage.jsx';
+import ChatMarkdown from './ChatMarkdown.jsx';
 
-function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDonorClick, openSignal = 0, chatContext = 'default' }) {
+/**
+ * @param {unknown} prompts
+ * @returns {{ label: string, prompt: string }[]}
+ */
+function normalizeSamplePrompts(prompts) {
+    if (!Array.isArray(prompts)) return [];
+    return prompts
+        .map((item) => {
+            if (typeof item === 'string') {
+                const text = item.trim();
+                return text ? { label: text, prompt: text, skipFastPath: false } : null;
+            }
+            const prompt = typeof item?.prompt === 'string' ? item.prompt.trim() : '';
+            if (!prompt) return null;
+            const label = typeof item?.label === 'string' && item.label.trim()
+                ? item.label.trim()
+                : prompt;
+            return { label, prompt, skipFastPath: item.skipFastPath === true };
+        })
+        .filter(Boolean);
+}
+
+function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDonorClick, openSignal = 0, chatContext = 'default', suggestedPrompts }) {
     const template = useContext(TemplateContext);
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
+    const [showSamplePrompts, setShowSamplePrompts] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -34,7 +57,14 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
     }
 
     const content = template?.content || {};
-    const isGamedayAgent = agentId === 'gameday-revenue-data' || chatContext === 'gameday';
+    const gamedayAgentId = template?.elastic?.gamedayDataAgentId
+        || template?.elastic?.agents?.gameday
+        || 'gameday-revenue-data';
+    const boosterAgentId = template?.elastic?.boosterDataAgentId
+        || template?.elastic?.agents?.donors
+        || 'booster-donor-data';
+    const isGamedayAgent = agentId === gamedayAgentId || chatContext === 'gameday';
+    const isBoosterAgent = agentId === boosterAgentId;
     const chatTitle = isGamedayAgent
         ? (content.gamedayChatAssistantTitle ?? 'Game Day Revenue Assistant')
         : (content.chatAssistantTitle ?? 'Chat Assistant');
@@ -43,7 +73,9 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
         : (content.chatAssistantSubtitle ??
         (agentId === 'ok-fraud'
             ? 'Ask me about fraud detection and compliance'
-            : agentId === 'booster-donor-data'
+            : agentId === 'snap-fraud-investigator'
+            ? 'Ask me about SNAP fraud, retailer abuse, and identity anomalies'
+            : isBoosterAgent
             ? 'Ask me about athletic booster and donor engagement data'
             : 'Ask me about scholarships'));
     const chatEmptyBody = isGamedayAgent
@@ -51,7 +83,9 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
         : (content.chatAssistantEmptyBody ??
         (agentId === 'ok-fraud'
             ? 'Ask about fraud indicators, investigations, or compliance.'
-            : agentId === 'booster-donor-data'
+            : agentId === 'snap-fraud-investigator'
+            ? 'Ask about trafficking, manual entry, cross-state IDs, or deceased beneficiaries.'
+            : isBoosterAgent
             ? 'Ask about at-risk donors, major gifts, affinity scores, or engagement trends.'
             : 'Start a conversation by asking about scholarships!'));
     const chatEmptyTry = isGamedayAgent
@@ -59,9 +93,23 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
         : (content.chatAssistantEmptyTry ??
         (agentId === 'ok-fraud'
             ? 'Try: "What are common fraud indicators?"'
-            : agentId === 'booster-donor-data'
+            : agentId === 'snap-fraud-investigator'
+            ? 'Try: "Which stores show same-cent trafficking?"'
+            : isBoosterAgent
             ? 'Try: "Who are our at-risk major gift donors?"'
             : 'Try: "What scholarships are available?"'));
+
+    const chatConfig = template?.content?.chat || {};
+    const isCenteredFloating = chatConfig.layout === 'centered';
+    const isInlineLarge = chatConfig.inlineLarge === true;
+    const samplePrompts = normalizeSamplePrompts(
+        suggestedPrompts
+            ?? chatConfig.samplePromptsByAgent?.[agentId]
+            ?? chatConfig.samplePrompts
+            ?? []
+    );
+    const primaryColor = template?.colors?.primary || '#5D5FEF';
+    const secondaryColor = template?.colors?.secondary || '#4A90D9';
 
     const {
         messages,
@@ -99,15 +147,23 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
         }
     }, [openSignal]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!inputValue.trim() || isLoading) {
+    useEffect(() => {
+        if (!isOpen) {
+            setShowSamplePrompts(false);
+        }
+    }, [isOpen]);
+
+    const submitPrompt = async (text, options = {}) => {
+        if (!text.trim() || isLoading) {
             return;
         }
-
-        const message = inputValue.trim();
         setInputValue('');
-        await sendMessage(message);
+        await sendMessage(text.trim(), options);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        await submitPrompt(inputValue);
     };
 
     const handleKeyPress = (e) => {
@@ -125,23 +181,23 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
         <div className="flex flex-col h-full">
             {/* Header */}
             <div
-                className="px-4 py-3 border-b flex items-center justify-between"
+                className="px-6 py-5 border-b flex items-center justify-between"
                 style={{
                     backgroundColor: template?.colors?.primary || '#5D5FEF',
                     color: 'white',
                 }}
             >
                 <div>
-                    <h3 className="font-semibold">{chatTitle}</h3>
-                    <p className="text-xs opacity-90">{chatSubtitle}</p>
+                    <h3 className="text-2xl font-semibold tracking-tight">{chatTitle}</h3>
+                    <p className="text-base opacity-90 mt-1">{chatSubtitle}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                     <button
                         onClick={clearConversation}
-                        className="p-1 hover:bg-white/20 rounded transition-colors"
+                        className="p-2 hover:bg-white/20 rounded-xl transition-colors"
                         title="Clear conversation"
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                     </button>
@@ -153,10 +209,10 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
                                 setIsOpen(false);
                             }
                         }}
-                        className="p-1 hover:bg-white/20 rounded transition-colors"
+                        className="p-2 hover:bg-white/20 rounded-xl transition-colors"
                         title="Close chat"
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -164,11 +220,11 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-gray-50">
                 {messages.length === 0 && (
-                    <div className="text-center text-gray-500 text-sm py-8">
+                    <div className="text-center text-gray-500 text-lg py-12 px-4 leading-relaxed">
                         <p>{chatEmptyBody}</p>
-                        <p className="mt-2 text-xs">{chatEmptyTry}</p>
+                        <p className="mt-3 text-base">{chatEmptyTry}</p>
                     </div>
                 )}
 
@@ -178,7 +234,7 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
-                            className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                            className={`max-w-[80%] rounded-2xl px-5 py-3 ${
                                 message.role === 'user'
                                     ? 'bg-blue-500 text-white'
                                     : message.role === 'error'
@@ -186,21 +242,19 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
                                     : 'bg-white border border-gray-200 text-gray-900'
                             }`}
                         >
-                            {message.role === 'assistant' && onDonorClick ? (
-                                <div className="text-sm whitespace-pre-wrap">
-                                    <DonorChatMessage
-                                        content={message.content}
-                                        onDonorClick={onDonorClick}
-                                        primaryColor={template?.colors?.primary}
-                                    />
-                                </div>
+                            {message.role === 'user' ? (
+                                <p className="text-lg leading-relaxed whitespace-pre-wrap">{message.content}</p>
                             ) : (
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                <ChatMarkdown
+                                    content={message.content}
+                                    onDonorClick={onDonorClick}
+                                    primaryColor={template?.colors?.primary}
+                                />
                             )}
                             {message.fastPath && (
-                                <p className="text-[10px] uppercase tracking-wide opacity-60 mt-1">Instant data lookup</p>
+                                <p className="text-xs uppercase tracking-wide opacity-60 mt-2">Instant data lookup</p>
                             )}
-                            <p className="text-xs opacity-70 mt-1">
+                            <p className="text-sm opacity-70 mt-2">
                                 {new Date(message.timestamp).toLocaleTimeString()}
                             </p>
                         </div>
@@ -209,7 +263,7 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
 
                 {isLoading && stepStatus && (
                     <div className="flex justify-start">
-                        <div className="bg-white border border-dashed border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600">
+                        <div className="bg-white border border-dashed border-gray-300 rounded-2xl px-5 py-3 text-lg text-gray-600">
                             {stepStatus}
                         </div>
                     </div>
@@ -217,18 +271,18 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
 
                 {isLoading && !stepStatus && messages.some((m) => m.streaming && !m.content) && (
                     <div className="flex justify-start">
-                        <div className="bg-white border border-gray-200 rounded-lg px-4 py-2">
-                            <div className="flex gap-1">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="bg-white border border-gray-200 rounded-2xl px-5 py-3">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce"></div>
+                                <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                             </div>
                         </div>
                     </div>
                 )}
 
                 {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-red-800 text-sm">
+                    <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-3 text-red-800 text-lg">
                         {error}
                     </div>
                 )}
@@ -237,8 +291,51 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className="border-t bg-white p-4">
-                <div className="flex gap-2">
+            <div className="border-t bg-white p-5 space-y-3">
+                {showSamplePrompts && samplePrompts.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {samplePrompts.map((item) => (
+                            <button
+                                key={item.prompt}
+                                type="button"
+                                title={item.prompt}
+                                disabled={isLoading}
+                                onClick={() => submitPrompt(item.prompt, { skipFastPath: item.skipFastPath })}
+                                className="px-4 py-2 text-sm font-semibold rounded-full border border-gray-300 text-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors truncate max-w-[16rem]"
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = secondaryColor;
+                                    e.currentTarget.style.borderColor = secondaryColor;
+                                    e.currentTarget.style.color = 'white';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '';
+                                    e.currentTarget.style.borderColor = '';
+                                    e.currentTarget.style.color = '';
+                                }}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <form onSubmit={handleSubmit} className="flex gap-2">
+                    {samplePrompts.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setShowSamplePrompts((open) => !open)}
+                            aria-label="Sample queries"
+                            aria-expanded={showSamplePrompts}
+                            title="Sample queries"
+                            className={`shrink-0 w-14 h-14 rounded-xl border text-2xl font-bold transition-colors ${
+                                showSamplePrompts
+                                    ? 'text-white border-transparent'
+                                    : 'text-gray-600 border-gray-300 hover:bg-gray-50'
+                            }`}
+                            style={showSamplePrompts ? { backgroundColor: primaryColor } : undefined}
+                        >
+                            *
+                        </button>
+                    )}
                     <input
                         ref={inputRef}
                         type="text"
@@ -246,25 +343,29 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder="Type your message..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-5 py-3 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                         disabled={isLoading}
                     />
                     <button
                         type="submit"
                         disabled={!inputValue.trim() || isLoading}
-                        className="px-6 py-2 rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                        className="px-8 py-3 rounded-xl font-semibold text-lg text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                         style={{
-                            backgroundColor: template?.colors?.primary || '#5D5FEF',
+                            backgroundColor: primaryColor,
                         }}
                     >
                         Send
                     </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     );
 
     if (floating) {
+        const panelClass = isCenteredFloating
+            ? 'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(1440px,94vw)] h-[90vh]'
+            : 'fixed bottom-6 right-6 w-[min(1100px,94vw)] h-[min(90vh,1500px)]';
+
         return (
             <>
                 {/* Floating Button with Pulsing Animation */}
@@ -273,7 +374,7 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
                         {/* Optional bubble text (e.g. okagency: "Can I help you find something?") */}
                         {template?.content?.chatBubbleText && (
                             <div
-                                className="hidden sm:block px-4 py-3 rounded-2xl shadow-lg text-sm font-medium text-gray-800 bg-white border border-gray-200 max-w-[220px]"
+                                className="hidden sm:block px-5 py-4 rounded-2xl shadow-lg text-base font-medium text-gray-800 bg-white border border-gray-200 max-w-[280px]"
                             >
                                 {template.content.chatBubbleText}
                             </div>
@@ -310,7 +411,7 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
                             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
                             onClick={() => setIsOpen(false)}
                         ></div>
-                        <div className="fixed bottom-8 right-8 w-[550px] h-[750px] bg-white rounded-2xl shadow-2xl z-50 flex flex-col border border-gray-200 transform transition-all duration-300">
+                        <div className={`${panelClass} bg-white rounded-2xl shadow-2xl z-50 flex flex-col border border-gray-200 transform transition-all duration-300`}>
                             {chatContent}
                         </div>
                     </>
@@ -321,7 +422,11 @@ function ChatWidget({ floating = true, onClose, agentId: agentIdOverride, onDono
 
     // Inline chat
     return (
-        <div className="w-full max-w-2xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 h-[500px] flex flex-col">
+        <div
+            className={`w-full mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col ${
+                isInlineLarge ? 'max-w-6xl h-[85vh]' : 'max-w-4xl h-[800px]'
+            }`}
+        >
             {chatContent}
         </div>
     );

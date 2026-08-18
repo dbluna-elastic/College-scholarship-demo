@@ -128,6 +128,27 @@ TOOLS = [
         },
         "tags": ["gameday", "retail", "game"],
     },
+    {
+        "id": "gameday-unusual-purchases",
+        "description": "Flag unusual team store purchases: bulk quantity (3+ units) or high-value tickets ($150+). Typical gameday sales are 1-2 units.",
+        "query": (
+            "FROM stadium-retail-sales "
+            "| WHERE quantity >= 3 OR total_amount >= 150 "
+            "| KEEP sku, item_name, category, location_name, quantity, unit_price, total_amount, transaction_time "
+            "| SORT total_amount DESC | LIMIT 20"
+        ),
+        "tags": ["gameday", "retail", "security", "anomaly"],
+    },
+    {
+        "id": "gameday-resale-activity",
+        "description": "Paciolan ticket resale scan counts and revenue by fan tier and gate (possible scalping / secondary-market activity).",
+        "query": (
+            "FROM paciolan-ticket-events | WHERE is_resale == true "
+            "| STATS resale_scans = COUNT(*), resale_revenue = SUM(ticket_price) BY fan_tier, gate "
+            "| SORT resale_scans DESC | LIMIT 12"
+        ),
+        "tags": ["gameday", "tickets", "security", "resale"],
+    },
 ]
 
 INSTRUCTIONS = """You are the Texas College Athletic Advancement **Game Day Revenue** assistant focused on **team store merchandise**, not concessions.
@@ -135,7 +156,7 @@ INSTRUCTIONS = """You are the Texas College Athletic Advancement **Game Day Reve
 ## Data indices
 - **stadium-retail-catalog**: 100 campus bookstore-style SKUs available at stadium team stores (sku, item_name, category, unit_price)
 - **stadium-retail-sales**: Gameday team store transactions (sku, item_name, category, location_name, quantity, total_amount)
-- **paciolan-ticket-events**: Ticket scans (fan_tier, gate, ticket_type, ticket_price)
+- **paciolan-ticket-events**: Ticket scans (fan_tier, gate, ticket_type, ticket_price, is_resale)
 
 ## Skills — map questions to tools
 1. **Total gameday revenue** → gameday-revenue-summary + gameday-retail-summary (tickets + team store retail)
@@ -147,13 +168,16 @@ INSTRUCTIONS = """You are the Texas College Athletic Advancement **Game Day Reve
 7. **Fan tiers / ticket revenue** → gameday-ticket-by-fan-tier
 8. **Gate traffic** → gameday-ticket-by-gate
 9. **Game-specific retail** → gameday-by-game-id
+10. **Unusual / suspicious / fraud / security / bulk buys / purchasing behavior** → gameday-unusual-purchases
+11. **Ticket resale / scalping / secondary market** → gameday-resale-activity (optionally also gameday-unusual-purchases for bulk merch)
 
 ## Rules
 1. ALWAYS use gameday-* ES|QL tools first. Do NOT use square-pos-transactions or discuss concessions unless explicitly asked.
 2. Emphasize the **100-item stadium retail catalog** aligned with campus bookstore merchandise.
 3. Format currency as USD. Default game: **GAME-2025-HOME-01**.
 4. Tie insights to advancement: upsell premium apparel, cross-sell drinkware/gifts, stock team stores by location.
-5. All data is simulated for demo purposes only."""
+5. Typical team store sales are **1–2 units**. Flag quantity >= 3, total_amount >= $150, bulk jerseys, or after-hours timestamps as possible resale stocking, employee theft, or POS misuse. Ticket `is_resale == true` is secondary-market activity — summarize by fan tier and gate.
+6. All data is simulated for demo purposes only."""
 
 
 def load_dotenv() -> None:

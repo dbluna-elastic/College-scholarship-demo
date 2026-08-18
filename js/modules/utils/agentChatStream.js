@@ -14,6 +14,7 @@ const TOOL_STEP_LABELS = {
     'booster-engagement-events-summary': 'Summarizing engagement events…',
     'booster-case-metrics': 'Loading at-risk case metrics…',
     'booster-alumni-email-workflow': 'Drafting alumni outreach email…',
+    'okstate-alumni-email-workflow': 'Drafting alumni outreach email…',
     'ok-grants-portfolio-stats': 'Summarizing grant portfolio…',
     'ok-grants-search': 'Searching grant opportunities…',
     'ok-grants-by-status': 'Filtering grants by status…',
@@ -46,6 +47,27 @@ const TOOL_STEP_LABELS = {
     'gameday-ticket-by-fan-tier': 'Analyzing fan tier ticket revenue…',
     'gameday-ticket-by-gate': 'Loading gate traffic…',
     'gameday-by-game-id': 'Looking up game retail sales…',
+    'gameday-unusual-purchases': 'Scanning for unusual team store purchases…',
+    'gameday-resale-activity': 'Checking ticket resale activity…',
+    'okstate-gameday-revenue-summary': 'Summarizing Boone Pickens ticket revenue…',
+    'okstate-gameday-pos-summary': 'Summarizing Square POS concessions and merch…',
+    'okstate-gameday-pos-by-stand': 'Loading stand performance…',
+    'okstate-gameday-pos-by-category': 'Analyzing POS revenue by category…',
+    'okstate-gameday-pos-by-zone': 'Loading POS revenue by zone…',
+    'okstate-gameday-top-stands': 'Ranking top concession stands…',
+    'okstate-gameday-pos-anomaly-window': 'Checking Club Orange payment outage window…',
+    'okstate-gameday-hourly-gate-scans': 'Loading hourly gate scans…',
+    'okstate-gameday-ticket-by-type': 'Analyzing ticket types…',
+    'okstate-gameday-ticket-by-fan-tier': 'Analyzing fan tier ticket revenue…',
+    'okstate-gameday-ticket-by-gate': 'Loading Boone Pickens gate traffic…',
+    'okstate-gameday-resale-activity': 'Checking ticket resale activity…',
+    'snap.fraud.find_same_cent_stores': 'Finding same-cent trafficking stores…',
+    'snap.fraud.find_rapid_transactions': 'Detecting rapid basket patterns…',
+    'snap.fraud.find_balance_drains': 'Analyzing balance drain patterns…',
+    'snap.fraud.find_manual_entry_stores': 'Finding manual EBT entry abuse…',
+    'snap.fraud.find_large_baskets': 'Detecting large convenience baskets…',
+    'snap.fraud.find_cross_state_ids': 'Searching cross-state identities…',
+    'snap.fraud.find_deceased_transactions': 'Finding deceased beneficiary transactions…',
     'platform.core.search': 'Searching grant data…',
     'platform.core.generate_esql': 'Generating query…',
     'platform.core.get_document_by_id': 'Fetching document…',
@@ -57,7 +79,7 @@ const TOOL_STEP_LABELS = {
  */
 export function getToolStepLabel(toolId) {
     if (!toolId) return 'Working on your question…';
-    return TOOL_STEP_LABELS[toolId] || `Running ${toolId.replace(/^(booster-|gameday-|oja-)/, '').replace(/-/g, ' ')}…`;
+    return TOOL_STEP_LABELS[toolId] || `Running ${toolId.replace(/^(booster-|gameday-|oja-|okstate-)/, '').replace(/-/g, ' ')}…`;
 }
 
 /**

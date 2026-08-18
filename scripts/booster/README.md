@@ -59,6 +59,8 @@ python3 scripts/booster/setup_workflow.py
 ```
 
 - Workflow: `texas-college-alumni-outreach-email` (ES|QL donor profile + engagement + AI draft)
-- Tool: `booster-alumni-email-workflow` (attached to `booster-donor-data` agent)
+- Tool: `booster-alumni-email-workflow` (attached to `booster-donor-data` agent; useful in chat)
+
+**App note:** The donor scorecard button runs the workflow via the Kibana Workflows `/run` API (`js/modules/utils/workflowRunApi.js`), not Agent Builder `tools/_execute`. Agent Builder workflow tools currently drop `tool_params` when their schema is empty, which caused `donor_id` validation failures.
 
 Run `setup_agent.py` after `setup_workflow.py` if you need the agent to reference the workflow tool on a fresh cluster.

@@ -16,8 +16,12 @@ import { tryGrantsChatFastPath, GRANTS_AGENT } from './grantsChatFastPath.js';
 import { tryFraudChatFastPath, FRAUD_AGENT } from './fraudChatFastPath.js';
 import { tryOjaChatFastPath, OJA_AGENT } from './ojaChatFastPath.js';
 import { tryGamedayChatFastPath, GAMEDAY_AGENT } from './gamedayChatFastPath.js';
+import { tryOkstateGamedayChatFastPath, OKSTATE_GAMEDAY_AGENT } from './okstateGamedayChatFastPath.js';
+import { tryWeatherChatFastPath, CATALOG_AGENT, PROVISIONING_AGENT } from './weatherChatFastPath.js';
+import { trySnapFraudChatFastPath, SNAP_FRAUD_AGENT } from './snapFraudChatFastPath.js';
 
 const BOOSTER_AGENT = 'booster-donor-data';
+const OKSTATE_DONOR_AGENT = 'okstate-donor-assistant';
 
 /**
  * @param {string} agentId
@@ -25,10 +29,15 @@ const BOOSTER_AGENT = 'booster-donor-data';
  */
 export function canUseChatFastPath(agentId) {
     return agentId === BOOSTER_AGENT
+        || agentId === OKSTATE_DONOR_AGENT
         || agentId === GRANTS_AGENT
         || agentId === FRAUD_AGENT
         || agentId === OJA_AGENT
-        || agentId === GAMEDAY_AGENT;
+        || agentId === GAMEDAY_AGENT
+        || agentId === OKSTATE_GAMEDAY_AGENT
+        || agentId === CATALOG_AGENT
+        || agentId === PROVISIONING_AGENT
+        || agentId === SNAP_FRAUD_AGENT;
 }
 
 function formatCurrency(value) {
@@ -116,7 +125,19 @@ export async function tryChatFastPath(agentId, message) {
         return tryGamedayChatFastPath(agentId, message);
     }
 
-    if (agentId !== BOOSTER_AGENT) return null;
+    if (agentId === OKSTATE_GAMEDAY_AGENT) {
+        return tryOkstateGamedayChatFastPath(agentId, message);
+    }
+
+    if (agentId === CATALOG_AGENT || agentId === PROVISIONING_AGENT) {
+        return tryWeatherChatFastPath(agentId, message);
+    }
+
+    if (agentId === SNAP_FRAUD_AGENT) {
+        return trySnapFraudChatFastPath(agentId, message);
+    }
+
+    if (agentId !== BOOSTER_AGENT && agentId !== OKSTATE_DONOR_AGENT) return null;
 
     const intent = matchBoosterIntent(message);
     if (!intent) return null;

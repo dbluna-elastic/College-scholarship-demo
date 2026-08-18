@@ -6,6 +6,16 @@ export default defineConfig({
     server: {
         port: 8089,
         proxy: {
+            '/api/notebook-generator': {
+                target: 'http://localhost:8765',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api\/notebook-generator/, ''),
+                configure: (proxy) => {
+                    proxy.on('error', (err) => {
+                        console.error('Notebook generator proxy error:', err);
+                    });
+                },
+            },
             // Proxy for ok-fraud ESQL (gawdzilla Elasticsearch) – must be before /api/elastic/es
             '/api/elastic/ok-fraud/es': {
                 target: 'https://gawdzilla-0d3e9e.es.us-east-2.aws.elastic-cloud.com:443',
@@ -55,6 +65,16 @@ export default defineConfig({
                     });
                     proxy.on('error', (err) => {
                         console.error('Agent Builder stream (ok-grants-data) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/workflows': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api\/elastic\/workflows/, '/api/workflows'),
+                configure: (proxy) => {
+                    proxy.on('error', (err) => {
+                        console.error('Elastic Workflows proxy error:', err);
                     });
                 },
             },
@@ -127,6 +147,58 @@ export default defineConfig({
                     });
                 },
             },
+            '/api/elastic/agent/okstate-donor-assistant/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (okstate-donor-assistant) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/agent/okstate-gameday-revenue-assistant/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (okstate-gameday-revenue-assistant) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/agent/ou-met-catalog-agent/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (ou-met-catalog-agent) proxy error:', err);
+                    });
+                },
+            },
+            '/api/elastic/agent/ou-met-provisioning-agent/chat/stream': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse/async',
+                configure: (proxy) => {
+                    proxy.on('proxyRes', (proxyRes) => {
+                        proxyRes.headers['cache-control'] = 'no-cache';
+                    });
+                    proxy.on('error', (err) => {
+                        console.error('Agent Builder stream (ou-met-provisioning-agent) proxy error:', err);
+                    });
+                },
+            },
             '/api/elastic/gameday-revenue-data/tools/_execute': {
                 target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
                 changeOrigin: true,
@@ -184,6 +256,46 @@ export default defineConfig({
                 configure: (proxy) => {
                     proxy.on('error', (err, req, res) => {
                         console.error('Agent Builder (gameday-revenue-data) proxy error:', err);
+                    });
+                }
+            },
+            '/api/elastic/agent/okstate-donor-assistant/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (okstate-donor-assistant) proxy error:', err);
+                    });
+                }
+            },
+            '/api/elastic/agent/okstate-gameday-revenue-assistant/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (okstate-gameday-revenue-assistant) proxy error:', err);
+                    });
+                }
+            },
+            '/api/elastic/agent/ou-met-catalog-agent/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (ou-met-catalog-agent) proxy error:', err);
+                    });
+                }
+            },
+            '/api/elastic/agent/ou-met-provisioning-agent/chat': {
+                target: 'https://gawdzilla-0d3e9e.kb.us-east-2.aws.elastic-cloud.com',
+                changeOrigin: true,
+                rewrite: () => '/api/agent_builder/converse',
+                configure: (proxy) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.error('Agent Builder (ou-met-provisioning-agent) proxy error:', err);
                     });
                 }
             },

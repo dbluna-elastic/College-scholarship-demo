@@ -8,6 +8,7 @@ import ChatWidget from './ChatWidget.jsx';
 import TexasCollegeStaffChrome from './texascollege/TexasCollegeStaffChrome.jsx';
 import BoosterEngagementPanel from './texascollege/BoosterEngagementPanel.jsx';
 import GamedayRevenuePanel from './texascollege/GamedayRevenuePanel.jsx';
+import OkStateGamedayRevenuePanel from './okstate/OkStateGamedayRevenuePanel.jsx';
 import { GAMEDAY_AGENT } from '../../modules/utils/gamedayEsqlQueries.js';
 
 export default function TexasCollegeStaffPortal({ onLogout, onDonorClick }) {
@@ -22,6 +23,8 @@ export default function TexasCollegeStaffPortal({ onLogout, onDonorClick }) {
         { id: 'gameday', label: tabLabels.gameday || 'Game Day Revenue' },
     ]), [tabLabels.donors, tabLabels.gameday]);
 
+    const gamedayModel = template?.elastic?.gamedayRevenue?.model;
+    const isPosGameday = gamedayModel === 'pos';
     const [activeTab, setActiveTab] = useState('donors');
 
     const activeAgentId = activeTab === 'gameday' ? gamedayAgentId : boosterAgentId;
@@ -40,7 +43,7 @@ export default function TexasCollegeStaffPortal({ onLogout, onDonorClick }) {
                 subtitle={subtitle}
             >
                 {activeTab === 'donors' && <BoosterEngagementPanel onDonorClick={onDonorClick} />}
-                {activeTab === 'gameday' && <GamedayRevenuePanel />}
+                {activeTab === 'gameday' && (isPosGameday ? <OkStateGamedayRevenuePanel /> : <GamedayRevenuePanel />)}
             </TexasCollegeStaffChrome>
             <ChatWidget
                 key={activeAgentId}

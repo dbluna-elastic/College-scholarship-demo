@@ -95,8 +95,9 @@ function BoosterDonorScorecard({ donorId, onBack, onLogout, onDonorClick }) {
     const fullName = [firstName, lastName].filter(Boolean).join(' ');
     const email = getDonorField(donor, 'email');
     const affinity = getDonorField(donor, 'affinity_score');
+    const institutionName = template?.branding?.institutionName || 'Athletics';
     const mailto = email
-        ? `mailto:${email}?subject=${encodeURIComponent(`Texas College Athletics — ${fullName || donorId}`)}`
+        ? `mailto:${email}?subject=${encodeURIComponent(`${institutionName} Athletics — ${fullName || donorId}`)}`
         : null;
     const telAdvancement = phoneToTel(advancementPhone);
 

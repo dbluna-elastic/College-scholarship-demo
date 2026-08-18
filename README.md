@@ -123,12 +123,19 @@ Templates are detected in this order:
 - **default** - Generic fallback
 - **texas** - Texas branding (Blue & Orange)
 - **oklahoma** - Oklahoma branding (Crimson & Cream)
+- **texascollege** - Texas College athletic booster & game day revenue portal
+- **okstate** - Oklahoma State athletic booster & game day revenue portal
+- **snapfraud** - SNAP/EBT fraud detection investigator portal
 
 ### Testing Templates
 
 See [TEMPLATE_TESTING.md](./TEMPLATE_TESTING.md) for detailed testing instructions.
 
 Quick test: Visit `http://localhost:8089?template=texas` to see Texas branding.
+
+Oklahoma State athletic portal: `http://localhost:8089?template=okstate` (staff password: `staff`).
+
+SNAP fraud demo: `http://localhost:8089?template=snapfraud` (staff password: `staff`). See [scripts/snap/README.md](./scripts/snap/README.md).
 
 ### Architecture Notes
 

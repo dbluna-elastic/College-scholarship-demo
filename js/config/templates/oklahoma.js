@@ -23,6 +23,23 @@ export const oklahomaTemplate = {
         stateName: 'Oklahoma',
         stateAbbreviation: 'OK',
         welcomeMessage: 'Welcome to the Oklahoma Scholarship Portal',
+        chatAssistantEmptyTry: 'Tap * below for demo queries',
+        chat: {
+            samplePromptsByAgent: {
+                'oklahoma-scholarship-counselor': [
+                    { label: 'Oklahoma scholarships', prompt: 'What scholarships are available in Oklahoma?' },
+                    { label: 'Residents', prompt: 'What aid is available for Oklahoma residents?' },
+                    { label: 'STEM', prompt: 'What STEM scholarships are open in Oklahoma?' },
+                    { label: 'Deadlines', prompt: 'When are Oklahoma scholarship deadlines?' },
+                    { label: 'Need-based', prompt: 'What need-based aid is available at Red River State?' },
+                    { label: 'Transfer strategy', prompt: 'Recommend a scholarship strategy for an Oklahoma resident transferring from community college.', skipFastPath: true },
+                    { label: 'STEM vs need', prompt: 'Compare need-based versus merit options for a Red River sophomore in engineering.', skipFastPath: true },
+                    { label: 'Late FAFSA', prompt: 'What should I do if I already filed FAFSA late?', skipFastPath: true },
+                    { label: 'Average ACT', prompt: 'Which Oklahoma programs are still worth applying to if my ACT is average?', skipFastPath: true },
+                    { label: 'Teaching shortlist', prompt: 'Help me build a shortlist if I want to stay in-state and become a teacher.', skipFastPath: true },
+                ],
+            },
+        },
     },
     
     // Color Palette - Oklahoma-themed (Crimson & Cream)

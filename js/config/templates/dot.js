@@ -24,6 +24,23 @@ export const dotTemplate = {
         stateName: 'Demo State',
         stateAbbreviation: 'DS',
         welcomeMessage: 'Welcome to the Department of Transportation',
+        chatAssistantEmptyTry: 'Tap * below for demo queries',
+        chat: {
+            samplePromptsByAgent: {
+                'dot-transportation-assistant': [
+                    { label: 'Transport grants', prompt: 'What transportation grants are available?' },
+                    { label: 'Infrastructure', prompt: 'Show infrastructure and bridge funding' },
+                    { label: 'Transit', prompt: 'What transit grant programs are open?' },
+                    { label: 'Eligibility', prompt: 'Who can apply for DOT grants?' },
+                    { label: 'Deadlines', prompt: 'When are transportation program deadlines?' },
+                    { label: 'Rural vs urban', prompt: 'Compare rural versus urban corridor funding and recommend a municipal application strategy.', skipFastPath: true },
+                    { label: 'Bridge vs transit', prompt: 'How should a county prioritize bridge preservation versus transit expansion?', skipFastPath: true },
+                    { label: 'Work-zone packet', prompt: 'What should a city include when applying for work-zone safety funding?', skipFastPath: true },
+                    { label: 'Match in plain language', prompt: 'Explain match requirements in plain language for a small town council.', skipFastPath: true },
+                    { label: 'Freight politics', prompt: 'If freight delays are the political issue, which programs are the best fit?', skipFastPath: true },
+                ],
+            },
+        },
         mainHeading: 'News, projects, and programs',
         mainTagline: 'PLAN AHEAD · STAY INFORMED · ARRIVE SAFELY',
         blueBar: {

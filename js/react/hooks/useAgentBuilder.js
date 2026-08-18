@@ -95,7 +95,11 @@ export function useAgentBuilder(agentId) {
         }
     }, [agentId, updateAssistantMessage]);
 
-    const sendMessage = useCallback(async (message) => {
+    /**
+     * @param {string} message
+     * @param {{ skipFastPath?: boolean }} [options]
+     */
+    const sendMessage = useCallback(async (message, options = {}) => {
         if (!message || !message.trim()) return;
         if (!agentId) {
             setError('Agent ID is not configured');
@@ -112,21 +116,23 @@ export function useAgentBuilder(agentId) {
         setMessages((prev) => [...prev, userMessage]);
         setIsLoading(true);
         setError(null);
-        setStepStatus('Checking for a quick answer…');
+        setStepStatus(options.skipFastPath ? 'Asking the assistant…' : 'Checking for a quick answer…');
 
         try {
-            const fastPath = await tryChatFastPath(agentId, message);
-            if (fastPath?.output) {
-                setMessages((prev) => [...prev, {
-                    id: `assistant-fast-${Date.now()}`,
-                    role: 'assistant',
-                    content: fastPath.output,
-                    timestamp: new Date().toISOString(),
-                    fastPath: true,
-                }]);
-                setIsLoading(false);
-                setStepStatus(null);
-                return;
+            if (!options.skipFastPath) {
+                const fastPath = await tryChatFastPath(agentId, message);
+                if (fastPath?.output) {
+                    setMessages((prev) => [...prev, {
+                        id: `assistant-fast-${Date.now()}`,
+                        role: 'assistant',
+                        content: fastPath.output,
+                        timestamp: new Date().toISOString(),
+                        fastPath: true,
+                    }]);
+                    setIsLoading(false);
+                    setStepStatus(null);
+                    return;
+                }
             }
 
             const assistantId = `assistant-${Date.now()}`;

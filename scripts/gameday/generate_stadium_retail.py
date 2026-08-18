@@ -164,6 +164,77 @@ def weighted_choice(items: list[dict]) -> dict:
     return random.choice(by_cat[category])
 
 
+def _sale_from_item(
+    item: dict,
+    *,
+    location_name: str,
+    location_zone: str,
+    quantity: int,
+    transaction_time: str,
+    transaction_id: str,
+) -> dict:
+    unit = float(item["unit_price"])
+    return {
+        "transaction_id": transaction_id,
+        "sku": item["sku"],
+        "item_name": item["item_name"],
+        "category": item["category"],
+        "subcategory": item["subcategory"],
+        "game_id": GAME_ID,
+        "location_name": location_name,
+        "location_zone": location_zone,
+        "quantity": quantity,
+        "unit_price": unit,
+        "total_amount": round(unit * quantity, 2),
+        "transaction_time": transaction_time,
+        "source_system": "square_clover",
+        "sale_type": "retail",
+    }
+
+
+def build_anomaly_sales(catalog: list[dict]) -> list[dict]:
+    """A handful of demo security outliers: bulk jerseys, after-hours, wrong-store volume."""
+    by_name = {item["item_name"]: item for item in catalog}
+    authentic = by_name["Authentic Limited Jersey"]
+    replica = by_name["Replica Football Jersey"]
+    cornhole = by_name["Cornhole Board Set"]
+    tumbler = by_name["Stainless Tumbler 20oz"]
+    return [
+        _sale_from_item(
+            authentic,
+            location_name="Club Level Merch Kiosk",
+            location_zone="Premium",
+            quantity=12,
+            transaction_time="2025-09-06T02:17:44Z",
+            transaction_id="anom-bulk-authentic-jerseys",
+        ),
+        _sale_from_item(
+            replica,
+            location_name="Kids Corner Store",
+            location_zone="West",
+            quantity=8,
+            transaction_time="2025-09-06T16:41:12Z",
+            transaction_id="anom-kids-corner-replica-jerseys",
+        ),
+        _sale_from_item(
+            cornhole,
+            location_name="South End Zone Pro Shop",
+            location_zone="South",
+            quantity=5,
+            transaction_time="2025-09-06T03:08:05Z",
+            transaction_id="anom-after-hours-cornhole",
+        ),
+        _sale_from_item(
+            tumbler,
+            location_name="Main Team Store — North Concourse",
+            location_zone="North",
+            quantity=18,
+            transaction_time="2025-09-06T14:22:31Z",
+            transaction_id="anom-bulk-tumblers",
+        ),
+    ]
+
+
 def build_sales(catalog: list[dict], count: int = 6200) -> list[dict]:
     base = datetime(2025, 9, 6, 11, 0, tzinfo=timezone.utc)
     sales = []
@@ -173,23 +244,15 @@ def build_sales(catalog: list[dict], count: int = 6200) -> list[dict]:
         qty = random.choices([1, 2, 3], weights=[0.78, 0.18, 0.04], k=1)[0]
         offset_min = random.randint(0, 360)
         ts = base + timedelta(minutes=offset_min, seconds=random.randint(0, 59))
-        unit = item["unit_price"]
-        sales.append({
-            "transaction_id": str(uuid.uuid4()),
-            "sku": item["sku"],
-            "item_name": item["item_name"],
-            "category": item["category"],
-            "subcategory": item["subcategory"],
-            "game_id": GAME_ID,
-            "location_name": loc_name,
-            "location_zone": loc_zone,
-            "quantity": qty,
-            "unit_price": unit,
-            "total_amount": round(unit * qty, 2),
-            "transaction_time": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "source_system": "square_clover",
-            "sale_type": "retail",
-        })
+        sales.append(_sale_from_item(
+            item,
+            location_name=loc_name,
+            location_zone=loc_zone,
+            quantity=qty,
+            transaction_time=ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            transaction_id=str(uuid.uuid4()),
+        ))
+    sales.extend(build_anomaly_sales(catalog))
     return sales
 
 
@@ -200,6 +263,26 @@ def write_ndjson(path: Path, index: str, docs: list[dict]) -> None:
         lines.append(json.dumps(doc))
     path.write_text("\n".join(lines) + "\n")
     print(f"  Wrote {len(docs)} docs -> {path.name}")
+
+
+def upsert_docs(es_url: str, api_key: str, index: str, docs: list[dict], id_field: str) -> None:
+    lines = []
+    for doc in docs:
+        lines.append(json.dumps({"index": {"_index": index, "_id": doc[id_field]}}))
+        lines.append(json.dumps(doc))
+    payload = ("\n".join(lines) + "\n").encode("utf-8")
+    req = urllib.request.Request(
+        f"{es_url.rstrip('/')}/_bulk",
+        data=payload,
+        method="POST",
+        headers={"Authorization": f"ApiKey {api_key}", "Content-Type": "application/x-ndjson"},
+    )
+    with urllib.request.urlopen(req) as resp:
+        result = json.loads(resp.read().decode())
+    if result.get("errors"):
+        failed = [i for i in result.get("items", []) if i.get("index", {}).get("error")]
+        raise RuntimeError(f"Bulk index errors: {json.dumps(failed[:2], indent=2)}")
+    print(f"  Upserted {len(docs)} anomaly sales into {index}")
 
 
 def bulk_index(es_url: str, api_key: str, path: Path) -> None:
@@ -265,6 +348,7 @@ def ensure_indices(es_url: str, api_key: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--bulk", action="store_true", help="Bulk index to Elasticsearch")
+    parser.add_argument("--upsert-anomalies", action="store_true", help="Index only the demo security outlier sales")
     parser.add_argument("--sales", type=int, default=6200, help="Number of sale lines to generate")
     args = parser.parse_args()
 
@@ -273,13 +357,15 @@ def main() -> int:
 
     catalog = build_catalog()
     sales = build_sales(catalog, args.sales)
+    anomalies = build_anomaly_sales(catalog)
 
-    print(f"Catalog: {len(catalog)} items | Sales: {len(sales)} lines")
-    write_ndjson(CATALOG_NDJSON, CATALOG_INDEX, catalog)
-    write_ndjson(SALES_NDJSON, SALES_INDEX, sales)
+    print(f"Catalog: {len(catalog)} items | Sales: {len(sales)} lines | Anomalies: {len(anomalies)}")
+    if args.bulk or not args.upsert_anomalies:
+        write_ndjson(CATALOG_NDJSON, CATALOG_INDEX, catalog)
+        write_ndjson(SALES_NDJSON, SALES_INDEX, sales)
 
-    if not args.bulk:
-        print("Run with --bulk to index into Gawdzilla.")
+    if not args.bulk and not args.upsert_anomalies:
+        print("Run with --bulk to index into Gawdzilla, or --upsert-anomalies for security outliers only.")
         return 0
 
     api_key = os.environ.get("OK_KIBANA_API_KEY") or os.environ.get("ELASTIC_API_KEY", "")
@@ -290,8 +376,11 @@ def main() -> int:
 
     print(f"Elasticsearch: {es_url}")
     ensure_indices(es_url, api_key)
-    bulk_index(es_url, api_key, CATALOG_NDJSON)
-    bulk_index(es_url, api_key, SALES_NDJSON)
+    if args.upsert_anomalies:
+        upsert_docs(es_url, api_key, SALES_INDEX, anomalies, "transaction_id")
+    if args.bulk:
+        bulk_index(es_url, api_key, CATALOG_NDJSON)
+        bulk_index(es_url, api_key, SALES_NDJSON)
     print("Done.")
     return 0
 

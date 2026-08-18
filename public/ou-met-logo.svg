@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" role="img" aria-label="OU School of Meteorology">
+  <rect width="200" height="48" rx="8" fill="#003366"/>
+  <text x="16" y="32" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="900" fill="#4A90D9">OU</text>
+  <text x="52" y="22" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700" fill="#ffffff" letter-spacing="0.08em">SCHOOL OF</text>
+  <text x="52" y="36" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700" fill="#7EB6FF" letter-spacing="0.08em">METEOROLOGY</text>
+</svg>

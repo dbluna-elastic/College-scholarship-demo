@@ -9,6 +9,8 @@ import {
     getGamedayRetailCatalog,
     getGamedayRetailByLocation,
     getGamedayTicketRevenueByFanTier,
+    getGamedayUnusualPurchases,
+    getGamedayResaleActivity,
     GAMEDAY_AGENT,
 } from './gamedayEsqlQueries.js';
 
@@ -45,6 +47,14 @@ function matchGamedayIntent(message) {
     const gameId = message.match(/\b(GAME-\d{4}-[A-Z0-9-]+)\b/i)?.[1];
 
     if (sku) return { type: 'sku', sku };
+
+    if (/\b(resale|scalp|secondary market)\b/.test(q)) {
+        return { type: 'resale' };
+    }
+
+    if (/\b(unusual|suspicious|anomal|fraud|bulk buy|high[- ]value|purchasing behavior|shrinkage|theft|security)\b/.test(q)) {
+        return { type: 'unusual' };
+    }
 
     if (/\b(catalog|100 item|100 sku|what.*sell|merchandise list|team store item)/.test(q)) {
         return { type: 'catalog' };
@@ -105,6 +115,60 @@ export async function tryGamedayChatFastPath(agentId, message) {
                     `- **100** stadium SKUs in the campus bookstore catalog`,
                 ].join('\n'),
             };
+        }
+
+        if (intent.type === 'unusual') {
+            const [rows, resale] = await Promise.all([
+                getGamedayUnusualPurchases(agentId),
+                getGamedayResaleActivity(agentId),
+            ]);
+            if (!rows.length && !resale.length) {
+                return { output: 'No bulk, high-value, or resale-flagged activity matched the current gameday data.' };
+            }
+            const purchaseLines = rows.slice(0, 8).map((row) => {
+                const reason = Number(row.quantity) >= 5
+                    ? 'bulk quantity'
+                    : Number(row.total_amount) >= 150
+                        ? 'high ticket'
+                        : 'above typical 1–2 unit sale';
+                return `- **${row.item_name}** (${row.sku}) — ${formatNumber(row.quantity)} units, ${formatCurrency(row.total_amount)} at ${row.location_name} _(${reason})_`;
+            });
+            const resaleTotal = resale.reduce((sum, row) => sum + Number(row.resale_scans || 0), 0);
+            const parts = [
+                '**Unusual purchasing & security flags**',
+                '_Typical team store sales are 1–2 units. Flagged: quantity ≥ 3 or sale ≥ $150._',
+                '',
+                purchaseLines.length ? purchaseLines.join('\n') : '_No bulk or high-value merchandise tickets._',
+            ];
+            if (resaleTotal > 0) {
+                parts.push('', `**Ticket resale scans:** ${formatNumber(resaleTotal)} across ${formatNumber(resale.length)} fan-tier / gate groups.`);
+            }
+            return { output: parts.join('\n') };
+        }
+
+        if (intent.type === 'resale') {
+            const [resale, bulk] = await Promise.all([
+                getGamedayResaleActivity(agentId),
+                getGamedayUnusualPurchases(agentId),
+            ]);
+            if (!resale.length && !bulk.length) {
+                return { output: 'No ticket resale scans or bulk merchandise purchases were found.' };
+            }
+            const resaleLines = resale.slice(0, 8).map((row) =>
+                `- **${row.fan_tier}** @ ${row.gate}: ${formatNumber(row.resale_scans)} scans, ${formatCurrency(row.resale_revenue)}`,
+            );
+            const bulkJerseys = bulk.filter((row) => /jersey/i.test(String(row.item_name || '')) || Number(row.quantity) >= 5);
+            const parts = [
+                '**Ticket resale & bulk merch stocking**',
+                resaleLines.length ? resaleLines.join('\n') : '_No Paciolan `is_resale` scans in this dataset._',
+            ];
+            if (bulkJerseys.length) {
+                parts.push('', '**Possible merch stocking (bulk jerseys / 5+ units):**');
+                parts.push(...bulkJerseys.slice(0, 5).map((row) =>
+                    `- **${row.item_name}** — ${formatNumber(row.quantity)} units, ${formatCurrency(row.total_amount)} at ${row.location_name}`,
+                ));
+            }
+            return { output: parts.join('\n') };
         }
 
         if (intent.type === 'catalog') {

@@ -6,18 +6,27 @@ import { useContext } from 'react';
 import { TemplateContext } from '../../context/TemplateContext.jsx';
 import { getSchemaLabels } from '../../../config/schemaConfig.js';
 
-export default function TexasCollegeStaffChrome({ onLogout, children, tabs, activeTab, onTabChange, subtitle }) {
+export default function TexasCollegeStaffChrome({
+    onLogout,
+    children,
+    tabs,
+    activeTab,
+    onTabChange,
+    subtitle,
+    headerLabel,
+    dashboardContent,
+}) {
     const template = useContext(TemplateContext);
     const schemaLabels = getSchemaLabels(template);
     const primaryColor = template?.colors?.primary || '#0C2340';
     const secondaryColor = template?.colors?.secondary || '#F15A22';
-    const staff = template?.content?.staffDashboard || {};
+    const staff = dashboardContent || template?.content?.staffDashboard || {};
 
     return (
         <div className="w-full min-h-screen bg-white" style={{ fontFamily: template?.typography?.fontFamily }}>
             <header className="text-white py-2" style={{ backgroundColor: primaryColor }}>
                 <div className="max-w-7xl mx-auto px-4 flex justify-end items-center gap-4">
-                    <span className="text-sm">{schemaLabels.dashboardStaff}</span>
+                    <span className="text-sm">{headerLabel || schemaLabels.dashboardStaff}</span>
                     {onLogout && (
                         <button
                             type="button"

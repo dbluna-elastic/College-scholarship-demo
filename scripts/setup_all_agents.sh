@@ -23,8 +23,22 @@ python3 scripts/booster/setup_workflow.py
 echo "==> Texas College game day revenue"
 python3 scripts/gameday/setup_agent.py
 
+echo "==> Oklahoma State alumni email workflow (chat agents already exist)"
+python3 scripts/okstate/setup_workflow.py
+
 echo "==> OJA juvenile justice"
 python3 scripts/oja/setup_workflow.py
 python3 scripts/oja/setup_agent.py
+
+echo "==> OU Meteorology catalog (oumet template)"
+python3 scripts/weather/run_demo.py --skip-crawl
+
+echo "==> SNAP fraud investigator (snapfraud template)"
+SNAP_SETUP="../snap-demo/snap-demo/scripts/setup_agent_builder.py"
+if [ -f "$SNAP_SETUP" ]; then
+  python3 "$SNAP_SETUP"
+else
+  echo "Skip SNAP agent: run snap-demo/scripts/setup_agent_builder.py (see scripts/snap/README.md)"
+fi
 
 echo "All Agent Builder setup scripts completed."

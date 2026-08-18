@@ -19,6 +19,23 @@ export const defaultTemplate = {
         heroSubtitle: 'Connect with financial aid resources tailored to your needs',
         ctaText: 'Get Started',
         ctaSecondary: 'Learn More',
+        chatAssistantEmptyTry: 'Tap * below for demo queries',
+        chat: {
+            samplePromptsByAgent: {
+                'scholarship-counselor-default': [
+                    { label: 'Available', prompt: 'What scholarships are available?' },
+                    { label: 'STEM majors', prompt: 'What scholarships are there for STEM majors?' },
+                    { label: 'Eligibility', prompt: 'How do I know if I qualify?' },
+                    { label: 'Deadlines', prompt: 'When are scholarship deadlines?' },
+                    { label: 'Award amounts', prompt: 'What are typical award amounts?' },
+                    { label: 'Compare packages', prompt: 'Compare STEM versus humanities awards and say which path has more renewable aid.', skipFastPath: true },
+                    { label: 'First-gen plan', prompt: 'How should a first-generation student prioritize applications this semester?', skipFastPath: true },
+                    { label: 'Working student', prompt: 'What would you recommend if my GPA is 3.2 and I work 20 hours a week?', skipFastPath: true },
+                    { label: 'Stacking aid', prompt: 'Explain how stacking institutional aid with state aid usually works here.', skipFastPath: true },
+                    { label: 'Missed deadline', prompt: 'If I miss the priority deadline, what are my realistic next options?', skipFastPath: true },
+                ],
+            },
+        },
     },
     
     // Navigation

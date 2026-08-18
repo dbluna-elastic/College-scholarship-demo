@@ -23,6 +23,23 @@ export const texasTemplate = {
         stateName: 'Texas',
         stateAbbreviation: 'TX',
         welcomeMessage: 'Welcome to the Texas Scholarship Portal',
+        chatAssistantEmptyTry: 'Tap * below for demo queries',
+        chat: {
+            samplePromptsByAgent: {
+                'texas-scholarship-counselor': [
+                    { label: 'Texas scholarships', prompt: 'What scholarships are available in Texas?' },
+                    { label: 'Residents', prompt: 'What aid is available for Texas residents?' },
+                    { label: 'STEM', prompt: 'What STEM scholarships are open in Texas?' },
+                    { label: 'Deadlines', prompt: 'When are Texas scholarship deadlines?' },
+                    { label: 'Need-based', prompt: 'What need-based aid is available at Brazos Valley State?' },
+                    { label: 'Transfer strategy', prompt: 'Recommend a scholarship strategy for a Texas resident transferring from community college.', skipFastPath: true },
+                    { label: 'STEM vs need', prompt: 'Compare need-based versus merit options for a Brazos Valley sophomore in engineering.', skipFastPath: true },
+                    { label: 'Late FAFSA', prompt: 'What should I do if I already filed FAFSA late?', skipFastPath: true },
+                    { label: 'Average SAT', prompt: 'Which Texas programs are still worth applying to if my SAT is average?', skipFastPath: true },
+                    { label: 'Teaching shortlist', prompt: 'Help me build a shortlist if I want to stay in-state and become a teacher.', skipFastPath: true },
+                ],
+            },
+        },
     },
     
     // Color Palette - Texas-themed (Deep Blue & Orange accents)

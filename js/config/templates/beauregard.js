@@ -28,6 +28,23 @@ export const beauregardTemplate = {
         mascotName: 'The Jackalopes',
         mascotDescription: 'Fast, elusive, and just a little bit weird',
         themeDescription: 'Where Texas Hill Country folklore meets academic excellence',
+        chatAssistantEmptyTry: 'Tap * below for demo queries',
+        chat: {
+            samplePromptsByAgent: {
+                'beauregard-scholarship-counselor': [
+                    { label: 'Jackalope aid', prompt: 'What scholarships are available for Jackalopes?' },
+                    { label: 'Seniors', prompt: 'What scholarships fit high school seniors?' },
+                    { label: 'Texas listings', prompt: 'What Texas scholarships can Beauregard students apply for?' },
+                    { label: 'STEM', prompt: 'What STEM scholarships should I look at?' },
+                    { label: 'Deadlines', prompt: 'When are college scholarship deadlines?' },
+                    { label: 'Senior shortlist', prompt: 'Help a Jackalope senior choose five applications if they want to stay in Texas.', skipFastPath: true },
+                    { label: 'Local vs statewide', prompt: 'Compare Hill Country awards versus statewide Texas aid for a rural senior.', skipFastPath: true },
+                    { label: 'Essay angle', prompt: 'What should I write about in essays given our school is small and rural?', skipFastPath: true },
+                    { label: 'Sports and academics', prompt: 'If I want athletics and academics, how should I sequence applications?', skipFastPath: true },
+                    { label: 'FAFSA first', prompt: 'Which dates matter most for a senior who has not started FAFSA yet?', skipFastPath: true },
+                ],
+            },
+        },
     },
     
     // Color Palette - Desert Tan and Sunset Orange (Texas Hill Country)

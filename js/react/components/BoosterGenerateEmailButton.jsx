@@ -1,5 +1,5 @@
 /**
- * Texas College alumni outreach email via Elastic Workflow.
+ * Athletic advancement alumni outreach email via Elastic Workflow.
  */
 
 import { useContext, useCallback } from 'react';
@@ -19,18 +19,19 @@ export default function BoosterGenerateEmailButton({
 }) {
     const template = useContext(TemplateContext);
     const agentId = template?.elastic?.boosterDataAgentId || 'booster-donor-data';
+    const workflowId = template?.elastic?.workflows?.alumniEmail?.workflowId || BOOSTER_ALUMNI_EMAIL_WORKFLOW_ID;
     const buttonLabel = label || template?.content?.generateAlumniEmailLabel || 'Generate alumni email';
 
     const handleGenerate = useCallback(async (id, email) => {
-        return generateBoosterAlumniEmail(id, { recipientEmail: email, agentId });
-    }, [agentId]);
+        return generateBoosterAlumniEmail(id, { recipientEmail: email, agentId, workflowId });
+    }, [agentId, workflowId]);
 
     return (
         <WorkflowEmailButton
             entityId={donorId}
             recipientEmail={recipientEmail}
             label={buttonLabel}
-            workflowId={BOOSTER_ALUMNI_EMAIL_WORKFLOW_ID}
+            workflowId={workflowId}
             onGenerate={handleGenerate}
             className={className}
             variant={variant}

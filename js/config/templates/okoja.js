@@ -42,7 +42,25 @@ export const okojaTemplate = {
         chatAssistantTitle: 'OJA Assistant',
         chatAssistantSubtitle: 'Ask about active youth, risk levels, recidivism, case notes, or county trends.',
         chatAssistantEmptyBody: 'Ask about supervision caseloads, assessments, discharge outcomes, or case note sentiment.',
-        chatAssistantEmptyTry: 'Try: "How many youth are actively supervised?" or "Show high-risk youth"',
+        chatAssistantEmptyTry: 'Tap * below for demo queries',
+        chat: {
+            samplePromptsByAgent: {
+                'ok-oja-data': [
+                    { label: 'Active youth', prompt: 'How many youth are actively supervised?' },
+                    { label: 'High-risk', prompt: 'Show high-risk youth' },
+                    { label: 'Recidivism', prompt: 'What is the recidivism rate?' },
+                    { label: 'Case notes', prompt: 'Show concerning case notes' },
+                    { label: 'By county', prompt: 'Break down caseload by county' },
+                    { label: 'High priority', prompt: 'Show high-priority youth' },
+                    { label: 'Review first', prompt: 'Which youth should a supervisor review first this week, and why?', skipFastPath: true },
+                    { label: 'Same load, different outcomes', prompt: 'Compare counties with similar caseloads but different outcomes — what might explain it?', skipFastPath: true },
+                    { label: 'Notes without scores', prompt: 'Recommend a follow-up plan for troubling notes that are not scored as high risk.', skipFastPath: true },
+                    { label: 'Discharge readiness', prompt: 'How should we talk about discharge readiness without over-relying on a single score?', skipFastPath: true },
+                    { label: 'Limited intensive slots', prompt: 'If intensive slots are limited, how would you prioritize placements?', skipFastPath: true },
+                    { label: 'Train officers', prompt: 'What early-warning signs in notes should we train officers to escalate?', skipFastPath: true },
+                ],
+            },
+        },
         programsLanding: {
             sectionTitle: 'Programs & Supervision',
             sectionSubtitle: 'Evidence-based services across Oklahoma\'s 77 counties.',

@@ -1,0 +1,9 @@
+{
+  "jupyter-lite.json": {
+    "jupyter-config-data": {
+      "appName": "OU Met JupyterLite",
+      "appUrl": "./lab",
+      "appVersion": "demo"
+    }
+  }
+}
