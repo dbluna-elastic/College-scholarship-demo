@@ -193,6 +193,15 @@ export async function fetchAgentChatStream(agentId, message, conversationId, cal
         for (const { event, data } of parsed.events) {
             const payload = data?.data ?? data ?? {};
 
+            if (event === 'error') {
+                const errInfo = payload.error || payload;
+                const message = errInfo.message || payload.message || 'Agent Builder stream error';
+                const err = new Error(message);
+                err.status = errInfo.meta?.statusCode || errInfo.statusCode || 500;
+                err.details = JSON.stringify(payload);
+                throw err;
+            }
+
             if (event === 'conversation_id_set' && payload.conversation_id) {
                 resultConversationId = payload.conversation_id;
             }

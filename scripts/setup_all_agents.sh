@@ -25,6 +25,9 @@ python3 scripts/gameday/setup_agent.py
 
 echo "==> Oklahoma State alumni email workflow (chat agents already exist)"
 python3 scripts/okstate/setup_workflow.py
+echo "==> Oklahoma State Foundation giving policies"
+python3 scripts/okstate/ingest_giving_policies.py
+python3 scripts/okstate/setup_giving_agent.py
 
 echo "==> OJA juvenile justice"
 python3 scripts/oja/setup_workflow.py

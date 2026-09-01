@@ -106,6 +106,8 @@ Provision all agents: `bash scripts/setup_all_agents.sh` (requires `OK_KIBANA_AP
 
    Alumni email workflow: `oklahoma-state-alumni-outreach-email` (deploy with `python3 scripts/okstate/setup_workflow.py`).
 
+   Foundation giving rules (index + Agent Builder): `python3 scripts/okstate/ingest_giving_policies.py` then `python3 scripts/okstate/setup_giving_agent.py`. Suggested chips like *"How do I donate to OSU through the Foundation?"* skip the fast path so the agent searches `okstate-giving-policies`. Portfolio / at-risk chips still use booster data.
+
 9. **OJA Juvenile Justice (okoja) Template:**
    ```
    http://localhost:8089?template=okoja

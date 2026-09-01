@@ -46,6 +46,12 @@ export const okstateTemplate = {
                     { label: 'Staff time', prompt: 'How should we reallocate staff time between affinity stars and slipping major gifts?', skipFastPath: true },
                     { label: '90-day win-back', prompt: 'What would a 90-day win-back campaign look like for quiet alumni?', skipFastPath: true },
                     { label: 'Protect spring drive', prompt: 'If the spring drive underperforms, which segments should we protect first?', skipFastPath: true },
+                    { label: 'How to give', prompt: 'How do I donate to OSU through the Foundation?', skipFastPath: true },
+                    { label: 'Gifts-in-kind', prompt: 'What gifts-in-kind does OSU accept?', skipFastPath: true },
+                    { label: 'Appraisal', prompt: 'Do I need an appraisal for a $6,000 in-kind gift?', skipFastPath: true },
+                    { label: 'Car or boat', prompt: 'Can I donate a car or boat?', skipFastPath: true },
+                    { label: 'International gifts', prompt: 'What extra steps apply to international gifts?', skipFastPath: true },
+                    { label: 'Donor privacy', prompt: 'How does the Foundation handle donor privacy?', skipFastPath: true },
                 ],
                 'okstate-gameday-revenue-assistant': [
                     { label: 'Combined revenue', prompt: 'How much combined gameday revenue did we make?' },
