@@ -22,6 +22,7 @@ import { okstateTemplate } from './templates/okstate.js';
 import { okojaTemplate } from './templates/okoja.js';
 import { oumetTemplate } from './templates/oumet.js';
 import { snapfraudTemplate } from './templates/snapfraud.js';
+import { wyomingTemplate } from './templates/wyoming.js';
 import { getEnvVar } from '../modules/utils/getEnvVar.js';
 
 // Template registry
@@ -38,6 +39,7 @@ const templates = {
     okoja: okojaTemplate,
     oumet: oumetTemplate,
     snapfraud: snapfraudTemplate,
+    wyoming: wyomingTemplate,
 };
 
 /**

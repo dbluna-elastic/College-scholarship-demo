@@ -23,8 +23,10 @@ import ClientOutcomeDetail from './components/ClientOutcomeDetail.jsx';
 import OkMentalHealthPublicSections from './components/OkMentalHealthPublicSections.jsx';
 import OkOjaPublicSections from './components/OkOjaPublicSections.jsx';
 import SnapFraudPublicSections from './components/SnapFraudPublicSections.jsx';
+import WyomingPublicSections from './components/WyomingPublicSections.jsx';
 import OjaStaffPortal from './components/OjaStaffPortal.jsx';
 import SnapFraudStaffPortal from './components/SnapFraudStaffPortal.jsx';
+import WyomingStaffPortal from './components/WyomingStaffPortal.jsx';
 import OjaYouthScorecard from './components/OjaYouthScorecard.jsx';
 import OkCommerceCompanyDashboard from './components/OkCommerceCompanyDashboard.jsx';
 import OkAgencyStaffDashboard from './components/OkAgencyStaffDashboard.jsx';
@@ -59,7 +61,7 @@ function App() {
 
     // Agency hero overlay: header becomes solid on scroll (okmentalhealth only; okagency uses solid grants search header)
     useEffect(() => {
-        if (!['okmentalhealth', 'dot', 'okoja', 'snapfraud'].includes(template?.id)) return;
+        if (!['okmentalhealth', 'dot', 'okoja', 'snapfraud', 'wyoming'].includes(template?.id)) return;
         const onScroll = () => setHeaderScrolled(window.scrollY > 60);
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
@@ -301,6 +303,9 @@ function App() {
         if (template?.id === 'snapfraud') {
             return <SnapFraudStaffPortal onLogout={handleLogout} />;
         }
+        if (template?.id === 'wyoming') {
+            return <WyomingStaffPortal onLogout={handleLogout} />;
+        }
         if (template?.id === 'okmentalhealth') {
             return (
                 <MentalHealthStaffPortal
@@ -405,7 +410,7 @@ function App() {
     }
 
     // Oklahoma agency–style layout (okagency, okmentalhealth): overlay header, hero, blue bar, promo bar, white main
-    const isAgencyOverlayLayout = ['okagency', 'okmentalhealth', 'dot', 'okoja', 'snapfraud'].includes(template?.id);
+    const isAgencyOverlayLayout = ['okagency', 'okmentalhealth', 'dot', 'okoja', 'snapfraud', 'wyoming'].includes(template?.id);
     const primaryColor = template?.colors?.primary || '#5D5FEF';
     const secondaryColor = template?.colors?.secondary || '#2E7D32';
     const accentColor = template?.colors?.accent || '#0ea5e9';
@@ -650,6 +655,10 @@ function App() {
                     <SnapFraudPublicSections onStaffLoginClick={() => setShowLoginModal(true)} />
                 )}
 
+                {template?.id === 'wyoming' && (
+                    <WyomingPublicSections onStaffLoginClick={() => setShowLoginModal(true)} />
+                )}
+
                 {template?.id === 'okmentalhealth' && (
                     <OkMentalHealthPublicSections
                         onStaffLoginClick={() => setShowLoginModal(true)}
@@ -685,7 +694,7 @@ function App() {
                 )}
 
                 {/* Main content: white, H2 + tagline + news */}
-                <main id={template?.id === 'dot' ? 'dot-main-content' : (template?.id === 'okmentalhealth' || template?.id === 'okoja' || template?.id === 'snapfraud') ? 'programs' : undefined} className="bg-white py-16">
+                <main id={template?.id === 'dot' ? 'dot-main-content' : (template?.id === 'okmentalhealth' || template?.id === 'okoja' || template?.id === 'snapfraud' || template?.id === 'wyoming') ? 'programs' : undefined} className="bg-white py-16">
                     <div className="max-w-7xl mx-auto px-4">
                         <h2
                             className="text-3xl md:text-4xl font-bold text-center mb-3"
@@ -771,7 +780,7 @@ function App() {
                     </div>
                 </footer>
 
-                <ChatWidget floating={true} />
+                {template?.chatEnabled !== false && <ChatWidget floating={true} />}
                 <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
             </div>
         );

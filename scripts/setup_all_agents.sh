@@ -44,4 +44,7 @@ else
   echo "Skip SNAP agent: run snap-demo/scripts/setup_agent_builder.py (see scripts/snap/README.md)"
 fi
 
+echo "==> Wyoming ETS classification (wyoming template)"
+python3 scripts/wyoming/setup_agent.py
+
 echo "All Agent Builder setup scripts completed."

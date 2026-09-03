@@ -27,6 +27,7 @@ The template engine tries these methods in order:
 - `okoja` - Oklahoma Office of Juvenile Affairs staff portal
 - `oumet` - OU School of Meteorology THREDDS catalog & data provisioning
 - `snapfraud` - SNAP/EBT fraud detection investigator portal (gawdzilla snap-* indices)
+- `wyoming` - Wyoming ETS data classification portal (wyo-classified-*, wyo-public-share)
 
 ## Agent Builder agents by template
 
@@ -44,6 +45,7 @@ The template engine tries these methods in order:
 | `okoja` | `ok-oja-data` | `scripts/oja/setup_agent.py` |
 | `oumet` | `ou-met-catalog-agent`, `ou-met-provisioning-agent` | `scripts/weather/run_demo.py` |
 | `snapfraud` | `snap-fraud-investigator` | `snap-demo/scripts/setup_agent_builder.py` (see `scripts/snap/README.md`) |
+| `wyoming` | `wyo-classify` | `scripts/wyoming/setup_agent.py` |
 
 Provision all agents: `bash scripts/setup_all_agents.sh` (requires `OK_KIBANA_API_KEY` / `ELASTIC_API_KEY` in `.env`).
 
@@ -138,6 +140,22 @@ Provision all agents: `bash scripts/setup_all_agents.sh` (requires `OK_KIBANA_AP
    - *"Which stores show same-cent trafficking?"* → store 4471
    - *"Show cross-state identity fraud"* → seeded SSN hash
    - *"Which deceased beneficiaries are still transacting?"* → hh_deceased_demo_001
+
+12. **Wyoming Data Classification (wyoming) Template:**
+   ```
+   http://localhost:8089?template=wyoming
+   ```
+
+   Staff login: password `staff` → Data Classification Operations.
+
+   Chat agent: `wyo-classify`. Demo prompts:
+   - *"How many documents are classified, and how many are restricted or pending review?"*
+   - *"What is in the pending review queue?"*
+   - *"Are any restricted documents in the public share?"*
+
+   Public landing shows classification-level tiles and live KPIs from `wyo-classified-*` / `wyo-public-share`. Staff view adds pending review (lowest confidence first), agency counts, and public-share spillage.
+
+   Load the synthetic corpus from **data-classification-tool** onto the same Elasticsearch cluster this demo proxies. Provision chat with `python3 scripts/wyoming/setup_agent.py`. See [scripts/wyoming/README.md](./scripts/wyoming/README.md).
 
 ### Method 2: Environment Variable
 

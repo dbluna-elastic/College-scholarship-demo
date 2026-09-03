@@ -126,6 +126,7 @@ Templates are detected in this order:
 - **texascollege** - Texas College athletic booster & game day revenue portal
 - **okstate** - Oklahoma State athletic booster & game day revenue portal
 - **snapfraud** - SNAP/EBT fraud detection investigator portal
+- **wyoming** - Wyoming ETS data classification portal
 
 ### Testing Templates
 
@@ -136,6 +137,8 @@ Quick test: Visit `http://localhost:8089?template=texas` to see Texas branding.
 Oklahoma State athletic portal: `http://localhost:8089?template=okstate` (staff password: `staff`).
 
 SNAP fraud demo: `http://localhost:8089?template=snapfraud` (staff password: `staff`). See [scripts/snap/README.md](./scripts/snap/README.md).
+
+Wyoming classification demo: `http://localhost:8089?template=wyoming` (staff password: `staff`). See [scripts/wyoming/README.md](./scripts/wyoming/README.md).
 
 ### Architecture Notes
 
